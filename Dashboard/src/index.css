@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Globale reset voor marges, paddings en box-sizing */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Instellingen voor html en body */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0E1E3D; /* Donkerblauwe achtergrondkleur */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.87); /* Witte tekst met transparantie */
+  overflow: hidden; /* Geen scrollbars */
+}
+
+/* Root container */
+#root {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Zorgt dat de inhoud vanaf de bovenkant begint */
+  align-items: center; /* Zorgt dat de inhoud gecentreerd is */
+  width: 100%;
+  height: 100%;
+  background-color: #0E1E3D; /* Ensure background color is set */
+}
+
+/* NavBar-styling */
+nav {
+  width: 100%; /* NavBar beslaat de volledige breedte */
+  height: 60px; /* Standaardhoogte */
+  background-color: #0E1E3D; /* Donkerblauwe achtergrond */
+  display: flex;
+  justify-content: space-between; /* Plaatst inhoud aan weerszijden */
+  align-items: center; /* Centraal uitlijnen van items */
+  padding: 0 1rem; /* Ruimte aan de zijkanten */
+  border-bottom: 1px solid #fff; /* Optioneel: witte onderlijn */
+}
+
+/* Logo-styling */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #FFEC56; /* Geel voor het logo */
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* Knoppen in de NavBar */
+.nav-buttons button {
+  background-color: #FFEC56; /* Gele achtergrond */
+  color: #0E1E3D; /* Donkerblauwe tekst */
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-buttons button:hover {
+  background-color: #FFD700; /* Donkerdere geel bij hover */
+  transform: scale(1.05); /* Kleinere zoom bij hover */
+}
+
+/* Weer-, tijd- en datumsectie */
+.nav-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* Ruimte tussen iconen */
+  font-size: 0.875rem;
+  color: #FFF; /* Witte tekst */
+}
+
+/* Knoppen aan de rechterkant van de NavBar */
+.nav-icons button {
+  background: none;
+  border: none;
+  color: #FFF; /* Witte iconen */
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-icons button:hover {
+  color: #FFEC56; /* Gele kleur bij hover */
+  transform: scale(1.1);
+}
+
+/* Hoofdinhoud van de pagina */
+main {
+  flex-grow: 1;
+  width: 100%;
+  padding: 1rem; /* Herstel padding */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Zorgt dat de inhoud gecentreerd is */
+  justify-content: center;
+  text-align: center;
+}
+
+/* Titeltekst op de pagina */
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7); /* Lichtere tekstkleur */
+}
+
+/* Footer (optioneel) */
+footer {
+  width: 100%;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+}
