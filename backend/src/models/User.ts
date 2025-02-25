@@ -10,6 +10,7 @@ interface UserAttributes {
   email: string;
   password: string;
   roleId: number;
+  isApproved: boolean;
   createdAt?: Date;
   updatedAt?: Date | null;
 }
@@ -24,6 +25,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public email!: string;
   public password!: string;
   public roleId!: number;
+  public isApproved!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date | null;
   public role!: Role; 
@@ -62,9 +64,14 @@ User.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: Role, // Verwijzing naar de roles tabel
+        model: Role,
         key: "id",
       },
+    },
+    isApproved: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -83,7 +90,6 @@ User.init(
   }
 );
 
-// Associatie met Role instellen
 User.belongsTo(Role, { foreignKey: "roleId", as: "role" });
 
 export default User;

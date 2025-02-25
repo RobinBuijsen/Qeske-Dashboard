@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/User";
 import Role from "../models/Role";
 
-// **Gebruiker aanmaken (altijd standaard als "user")**
+// **Gebruiker aanmaken (standaard als "user", niet direct goedgekeurd)**
 export const createUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { first_name, last_name, username, email, password } = req.body;
@@ -27,16 +27,37 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       username,
       email,
       password: hashedPassword,
-      roleId: userRole.id, 
+      roleId: userRole.id,
+      isApproved: false, // Nieuwe gebruikers moeten worden goedgekeurd
     });
 
-    res.status(201).json({ message: "Gebruiker succesvol aangemaakt!", user: newUser });
+    res.status(201).json({ message: "Gebruiker geregistreerd. Wacht op goedkeuring door een admin.", user: newUser });
   } catch (error) {
     res.status(500).json({ message: "Fout bij aanmaken gebruiker", error });
   }
 };
 
-// **Alle gebruikers ophalen (alleen admin)**
+// **Admin keurt gebruiker goed**
+export const approveUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findByPk(id);
+    if (!user) {
+      res.status(404).json({ message: "Gebruiker niet gevonden" });
+      return;
+    }
+
+    user.isApproved = true;
+    await user.save();
+
+    res.json({ message: "Gebruiker is goedgekeurd." });
+  } catch (error) {
+    res.status(500).json({ message: "Fout bij goedkeuren gebruiker", error });
+  }
+};
+
+// **Admin haalt alle gebruikers op**
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const adminRole = await Role.findOne({ where: { name: "admin" } });
@@ -53,7 +74,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// **Een gebruiker een admin maken (alleen admin)**
+// **Admin promoot gebruiker naar admin**
 export const updateUserRole = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -72,13 +93,9 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const updated = await User.update({ roleId: role.id }, { where: { id } });
-    if (!updated) {
-      res.status(404).json({ message: "Gebruiker niet gevonden" });
-      return;
-    }
+    await User.update({ roleId: role.id }, { where: { id } });
 
-    res.json({ message: `Gebruiker succesvol bijgewerkt naar ${newRole}` });
+    res.json({ message: `Gebruiker succesvol gepromoveerd naar ${newRole}` });
   } catch (error) {
     res.status(500).json({ message: "Fout bij updaten gebruiker", error });
   }
