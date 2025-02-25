@@ -4,16 +4,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
-const db_1 = __importDefault(require("../db")); // Zorg ervoor dat je databaseconfiguratie hier klopt
-const User_1 = __importDefault(require("./User")); // Zorg ervoor dat de relatie met User wordt gemaakt
+const db_1 = __importDefault(require("../db"));
+const User_1 = __importDefault(require("./User"));
 const Alert = db_1.default.define("Alert", {
     id: {
         type: sequelize_1.DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
     },
-    type: {
-        type: sequelize_1.DataTypes.STRING,
+    entity_id: {
+        type: sequelize_1.DataTypes.INTEGER,
         allowNull: false,
     },
     thresholdType: {
@@ -23,6 +23,19 @@ const Alert = db_1.default.define("Alert", {
     threshold: {
         type: sequelize_1.DataTypes.FLOAT,
         allowNull: false,
+    },
+    time_start: {
+        type: sequelize_1.DataTypes.TIME,
+        allowNull: true,
+    },
+    time_end: {
+        type: sequelize_1.DataTypes.TIME,
+        allowNull: true,
+    },
+    duration: {
+        type: sequelize_1.DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 10, // Standaard 10 seconden
     },
     message: {
         type: sequelize_1.DataTypes.TEXT,

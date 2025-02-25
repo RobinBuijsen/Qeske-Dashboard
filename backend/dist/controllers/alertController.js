@@ -14,16 +14,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAlert = exports.updateAlert = exports.getAlert = exports.getAlerts = exports.createAlert = void 0;
 const Alert_1 = __importDefault(require("../models/Alert"));
-// Alert aanmaken (alleen admin)
+// 🔹 Alert aanmaken (alleen admin)
 const createAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Controleer of de gebruiker een admin is
         if (req.user.role !== "admin") {
             res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen alerts aanmaken." });
             return;
         }
-        const { type, thresholdType, threshold, message, userId } = req.body;
-        const newAlert = yield Alert_1.default.create({ type, thresholdType, threshold, message, userId });
+        const { entity_id, thresholdType, threshold, message, userId, time_start, time_end, duration } = req.body;
+        if (!entity_id || !thresholdType || !threshold || !message || !duration) {
+            res.status(400).json({ message: "Alle velden behalve 'time_start' en 'time_end' zijn verplicht." });
+            return;
+        }
+        const newAlert = yield Alert_1.default.create({ entity_id, thresholdType, threshold, message, userId, time_start, time_end, duration });
         res.status(201).json(newAlert);
     }
     catch (error) {
@@ -31,7 +34,7 @@ const createAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.createAlert = createAlert;
-// Alle alerts ophalen (alleen admin)
+// 🔹 Alle alerts ophalen (alleen admin)
 const getAlerts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (req.user.role !== "admin") {
@@ -46,7 +49,7 @@ const getAlerts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getAlerts = getAlerts;
-// Een specifieke alert ophalen (alleen admin)
+// 🔹 Een specifieke alert ophalen (alleen admin)
 const getAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (req.user.role !== "admin") {
@@ -66,7 +69,7 @@ const getAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getAlert = getAlert;
-// Alert updaten (alleen admin)
+// 🔹 Alert updaten (alleen admin)
 const updateAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (req.user.role !== "admin") {
@@ -74,8 +77,8 @@ const updateAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const { id } = req.params;
-        const [updated] = yield Alert_1.default.update(req.body, { where: { id } });
-        if (!updated) {
+        const updatedAlert = yield Alert_1.default.update(req.body, { where: { id } });
+        if (!updatedAlert[0]) {
             res.status(404).json({ message: "Alert niet gevonden" });
             return;
         }
@@ -86,7 +89,7 @@ const updateAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.updateAlert = updateAlert;
-// Alert verwijderen (alleen admin)
+// 🔹 Alert verwijderen (alleen admin)
 const deleteAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (req.user.role !== "admin") {

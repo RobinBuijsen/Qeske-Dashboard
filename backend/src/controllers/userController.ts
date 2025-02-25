@@ -39,64 +39,171 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 
 // **Admin keurt gebruiker goed**
 export const approveUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    
-    const user = await User.findByPk(id);
-    if (!user) {
-      res.status(404).json({ message: "Gebruiker niet gevonden" });
-      return;
+    try {
+      const { id } = req.params;
+  
+      // 🔹 Controleer of de aanvrager admin is
+      if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen accounts goedkeuren." });
+        return;
+      }
+  
+      // 🔹 Zoek de gebruiker in de database
+      const user = await User.findOne({ where: { id } });
+  
+      if (!user) {
+        res.status(404).json({ message: "Gebruiker niet gevonden." });
+        return;
+      }
+  
+      // 🔹 Keur het account goed
+      user.isApproved = true;
+      await user.save();
+  
+      res.json({ message: "Account succesvol goedgekeurd." });
+    } catch (error) {
+      console.error("Fout bij goedkeuren gebruiker:", error);
+      res.status(500).json({ message: "Fout bij goedkeuren gebruiker", error });
     }
-
-    user.isApproved = true;
-    await user.save();
-
-    res.json({ message: "Gebruiker is goedgekeurd." });
-  } catch (error) {
-    res.status(500).json({ message: "Fout bij goedkeuren gebruiker", error });
-  }
-};
+  };
 
 // **Admin haalt alle gebruikers op**
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const adminRole = await Role.findOne({ where: { name: "admin" } });
-
-    if (req.user.roleId !== adminRole?.id) {
-      res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen gebruikers bekijken." });
-      return;
+    try {
+      if (req.user.role !== "admin") {
+        res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen gebruikers bekijken." });
+        return;
+      }
+  
+      // Pas de query aan om Role correct te includen
+      const users = await User.findAll({
+        include: [
+          {
+            model: Role,
+            as: "role", 
+            attributes: ["name"], 
+          },
+        ],
+      });
+  
+      res.json(users);
+    } catch (error) {
+      console.error("Fout bij ophalen gebruikers:", error);
+      res.status(500).json({ message: "Fout bij ophalen gebruikers", error });
     }
+  };
 
-    const users = await User.findAll({ include: [Role] });
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: "Fout bij ophalen gebruikers", error });
-  }
-};
-
-// **Admin promoot gebruiker naar admin**
-export const updateUserRole = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { newRole } = req.body;
-
-    const adminRole = await Role.findOne({ where: { name: "admin" } });
-
-    if (req.user.roleId !== adminRole?.id) {
-      res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen rollen aanpassen." });
-      return;
+// **Admin haalt gebruiker op door ID**
+  export const getUserById = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+  
+      if (req.user.role !== "admin") { 
+        res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen gebruikers bekijken." });
+        return;
+      }
+  
+      // 🔹 Haal de gebruiker op met de rol
+      const user = await User.findOne({
+        where: { id },
+        include: [
+          {
+            model: Role,
+            as: "role",
+            attributes: ["name"],
+          },
+        ],
+      });
+  
+      if (!user) {
+        res.status(404).json({ message: "Gebruiker niet gevonden." });
+        return;
+      }
+  
+      res.json(user);
+    } catch (error) {
+      console.error("Fout bij ophalen gebruiker:", error);
+      res.status(500).json({ message: "Fout bij ophalen gebruiker", error });
     }
+  };
 
-    const role = await Role.findOne({ where: { name: newRole } });
-    if (!role) {
-      res.status(400).json({ message: "Ongeldige rol" });
-      return;
+// **Admin wijzigt gebruikers**
+  export const updateUser = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { first_name, last_name, username, email, password, roleId } = req.body;
+  
+      // Controleer of de aanvrager admin is
+      if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen gebruikers wijzigen." });
+        return;
+      }
+  
+      // Zoek de gebruiker in de database
+      const user = await User.findOne({ where: { id } });
+  
+      if (!user) {
+        res.status(404).json({ message: "Gebruiker niet gevonden." });
+        return;
+      }
+  
+      // Update de gegevens indien meegegeven
+      if (first_name) user.first_name = first_name;
+      if (last_name) user.last_name = last_name;
+      if (username) user.username = username;
+      if (email) user.email = email;
+  
+      // Update het wachtwoord als het is meegegeven (hash voor veiligheid)
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user.password = hashedPassword;
+      }
+  
+      // Update de rol als deze is meegegeven
+      if (roleId) {
+        const roleExists = await Role.findOne({ where: { id: roleId } });
+        if (!roleExists) {
+          res.status(400).json({ message: "Ongeldige rol ID." });
+          return;
+        }
+        user.roleId = roleId;
+      }
+  
+      // Sla de wijzigingen op
+      await user.save();
+  
+      res.json({ message: "Gebruiker succesvol bijgewerkt.", user });
+    } catch (error) {
+      console.error("Fout bij updaten gebruiker:", error);
+      res.status(500).json({ message: "Fout bij updaten gebruiker", error });
     }
+  };
 
-    await User.update({ roleId: role.id }, { where: { id } });
-
-    res.json({ message: `Gebruiker succesvol gepromoveerd naar ${newRole}` });
-  } catch (error) {
-    res.status(500).json({ message: "Fout bij updaten gebruiker", error });
-  }
-};
+// **Admin verwijdert gebruikers**
+  export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+  
+      // 🔹 Controleer of de aanvrager admin is
+      if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({ message: "Toegang geweigerd: alleen admins kunnen gebruikers verwijderen." });
+        return;
+      }
+  
+      // 🔹 Controleer of de gebruiker bestaat
+      const user = await User.findOne({ where: { id } });
+  
+      if (!user) {
+        res.status(404).json({ message: "Gebruiker niet gevonden." });
+        return;
+      }
+  
+      await user.destroy(); // 🔹 Verwijder de gebruiker
+  
+      res.json({ message: "Gebruiker succesvol verwijderd." });
+    } catch (error) {
+      console.error("Fout bij verwijderen gebruiker:", error);
+      res.status(500).json({ message: "Fout bij verwijderen gebruiker", error });
+    }
+  };
+  

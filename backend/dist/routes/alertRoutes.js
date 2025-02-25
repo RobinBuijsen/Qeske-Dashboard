@@ -5,9 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const alertController_1 = require("../controllers/alertController");
-const authMiddleware_1 = __importDefault(require("../middleware/authMiddleware")); // Zorgt voor authenticatie
+const authMiddleware_1 = __importDefault(require("../middleware/authMiddleware"));
 const router = (0, express_1.Router)();
-// 🛠 Alleen admins kunnen alerts beheren
+// Alleen admins mogen alerts beheren
 router.post("/", authMiddleware_1.default, alertController_1.createAlert);
 router.get("/", authMiddleware_1.default, alertController_1.getAlerts);
 router.get("/:id", authMiddleware_1.default, alertController_1.getAlert);

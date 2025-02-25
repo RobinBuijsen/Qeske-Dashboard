@@ -1,16 +1,10 @@
 import { Router } from "express";
-import {
-  createAlert,
-  getAlerts,
-  getAlert,
-  updateAlert,
-  deleteAlert,
-} from "../controllers/alertController";
-import authMiddleware from "../middleware/authMiddleware"; // Zorgt voor authenticatie
+import { createAlert, getAlerts, getAlert, updateAlert, deleteAlert } from "../controllers/alertController";
+import authMiddleware from "../middleware/authMiddleware";
 
 const router = Router();
 
-// 🛠 Alleen admins kunnen alerts beheren
+// Alleen admins mogen alerts beheren
 router.post("/", authMiddleware, createAlert);
 router.get("/", authMiddleware, getAlerts);
 router.get("/:id", authMiddleware, getAlert);

@@ -40,9 +40,14 @@ User.init({
         type: sequelize_1.DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Role_1.default, // Verwijzing naar de roles tabel
+            model: Role_1.default,
             key: "id",
         },
+    },
+    isApproved: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
     },
     createdAt: {
         type: sequelize_1.DataTypes.DATE,
@@ -58,6 +63,5 @@ User.init({
     tableName: "users",
     timestamps: true,
 });
-// Associatie met Role instellen
 User.belongsTo(Role_1.default, { foreignKey: "roleId", as: "role" });
 exports.default = User;
