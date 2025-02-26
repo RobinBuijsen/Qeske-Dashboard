@@ -15,7 +15,7 @@ export default function NavBar() {
   const navigate = useNavigate();
   const storedRole = localStorage.getItem("role");
   const userRole = storedRole ? JSON.parse(storedRole).name : "user";
-  console.log("Correcte gebruikersrol:", userRole); // Debugging
+
   
 
   useEffect(() => {

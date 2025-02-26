@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { getUserById, updateUser } from "../api/api";
 
 console.log("Management.tsx geladen");
 
@@ -12,14 +13,13 @@ interface User {
   username: string;
   email: string;
   password?: string;
-  role: string;
+  roleId: number;
   isApproved: boolean;
 }
 
 // Definieer een interface voor alerts
 interface Alert {
   id: number;
-  type: string;
   thresholdType: string;
   threshold: number;
   message: string;
@@ -36,6 +36,7 @@ export default function Management() {
   const [loading, setLoading] = useState<boolean>(true);
   const [modal, setModal] = useState<{ type: string; itemId: number | null; user?: User; alert?: Alert }>({ type: "", itemId: null });
   const [editUser, setEditUser] = useState<User | null>(null);
+  const [password, setPassword] = useState<string>("");
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -46,7 +47,6 @@ export default function Management() {
     fetchData();
   }, []);
 
-  //  Data ophalen voor zowel gebruikers als alerts
   const fetchData = async () => {
     setLoading(true);
     await fetchUsers();
@@ -54,7 +54,6 @@ export default function Management() {
     setLoading(false);
   };
 
-  // Gebruikers ophalen
   const fetchUsers = async () => {
     try {
       const response = await fetch("http://localhost:3000/api/users", {
@@ -72,7 +71,6 @@ export default function Management() {
     }
   };
 
-  //  Alerts ophalen
   const fetchAlerts = async () => {
     try {
       const response = await fetch("http://localhost:3000/api/alerts", {
@@ -90,7 +88,6 @@ export default function Management() {
     }
   };
 
-  // Functies voor gebruikersbeheer
   const approveUser = async (id: number) => {
     try {
       await fetch(`http://localhost:3000/api/users/${id}/approve`, {
@@ -143,38 +140,52 @@ export default function Management() {
     setModal({ type: "", itemId: null });
   };
 
-  const handleEditUser = (user: User) => {
-    setEditUser(user);
-    setModal({ type: "editUser", itemId: user.id, user });
+  const handleEditUser = async (userId: number) => {
+    try {
+      const userData = await getUserById(userId, token!);
+      if (userData) {
+        setEditUser(userData); 
+        setModal({ type: "editUser", itemId: userId });
+      }
+    } catch (error) {
+      console.error("Fout bij ophalen van gebruiker:", error);
+    }
   };
 
   const handleSaveUser = async () => {
     if (!editUser) return;
 
+    const userDataToSend = { ...editUser };
+    if (password) {
+      userDataToSend.password = password;
+    } else {
+      delete userDataToSend.password;
+    }
+
     try {
-      const response = await fetch(`http://localhost:3000/api/users/${editUser.id}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(editUser),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Fout bij updaten gebruiker: ${response.status}`);
-      }
-
-      const updatedUser = await response.json();
+      const updatedUser = await updateUser(editUser.id, userDataToSend, token!);
       setUsers(users.map(user => (user.id === updatedUser.id ? updatedUser : user)));
       setEditUser(null);
+      setPassword("");
       setModal({ type: "", itemId: null });
     } catch (error) {
       console.error("Fout bij updaten gebruiker:", error);
     }
   };
 
-  // Loading state
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (editUser) {
+      const { name, value } = e.target;
+      if (name === "password") {
+        setPassword(value);
+      } else if (name === "role") {
+        setEditUser({ ...editUser, roleId: value === "admin" ? 2 : 1 });
+      } else {
+        setEditUser({ ...editUser, [name]: value });
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#0E1E3D] text-black">
@@ -214,7 +225,7 @@ export default function Management() {
             <div key={user.id} className="flex justify-between items-center p-2 text-black">
               <p className="text-black">{user.first_name} {user.last_name} - {user.username} - {user.email}</p>
               <div className="flex gap-2">
-                <button className="bg-blue-500 px-4 py-1 rounded text-white hover:bg-blue-700" onClick={() => handleEditUser(user)}>Bewerken</button>
+                <button className="bg-blue-500 px-4 py-1 rounded text-white hover:bg-blue-700" onClick={() => handleEditUser(user.id)}>Bewerken</button>
                 <button className="bg-red-500 px-4 py-1 rounded text-white hover:bg-red-700" onClick={() => setModal({ type: "deleteUser", itemId: user.id, user })}>
                   Verwijderen
                 </button>
@@ -276,66 +287,89 @@ export default function Management() {
       {/* Bewerken Modal */}
       {editUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
-          <div className="bg-yellow-400 p-10 rounded-lg shadow-lg text-center w-96">
+          <div className="bg-yellow-400 p-10 rounded-lg shadow-lg text-center w-full max-w-lg">
             <h2 className="text-xl text-black font-bold mb-4">Gebruiker Bewerken</h2>
-            <div className="flex flex-col space-y-4">
+            <form onSubmit={handleSaveUser}>
               <input
                 type="text"
-                className="p-2 border border-gray-800 rounded-md"
+                name="first_name"
                 placeholder="Voornaam"
                 value={editUser.first_name}
-                onChange={(e) => setEditUser({ ...editUser, first_name: e.target.value })}
+                onChange={handleChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
               />
               <input
                 type="text"
-                className="p-2 border border-gray-800 rounded-md"
+                name="last_name"
                 placeholder="Achternaam"
                 value={editUser.last_name}
-                onChange={(e) => setEditUser({ ...editUser, last_name: e.target.value })}
+                onChange={handleChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
               />
               <input
                 type="text"
-                className="p-2 border border-gray-800 rounded-md"
+                name="username"
                 placeholder="Gebruikersnaam"
                 value={editUser.username}
-                onChange={(e) => setEditUser({ ...editUser, username: e.target.value })}
+                onChange={handleChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
               />
               <input
                 type="email"
-                className="p-2 border border-gray-800 rounded-md"
+                name="email"
                 placeholder="E-mail"
                 value={editUser.email}
-                onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                onChange={handleChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
               />
               <input
                 type="password"
-                className="p-2 border border-gray-800 rounded-md"
-                placeholder="Wachtwoord (leeg laten om niet te wijzigen)"
-                value={editUser.password || ""}
-                onChange={(e) => setEditUser({ ...editUser, password: e.target.value })}
+                name="password"
+                placeholder="Voer hier het nieuwe wachtwoord in (optioneel)"
+                value={password}
+                onChange={handleChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                autoComplete="new-password"
               />
-              <input
-                type="text"
-                className="p-2 border border-gray-800 rounded-md"
-                placeholder="Rol"
-                value={editUser.role}
-                onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
-              />
-            </div>
-            <div className="flex justify-center space-x-4 mt-4">
-              <button
-                className="bg-green-500 px-4 py-2 rounded-md text-white"
-                onClick={handleSaveUser}
+              <select
+                name="role"
+                value={editUser.roleId === 2 ? "admin" : "user"}
+                onChange={handleChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
               >
-                Opslaan
-              </button>
-              <button
-                className="bg-red-500 px-4 py-2 rounded-md text-white"
-                onClick={() => setEditUser(null)}
-              >
-                Annuleren
-              </button>
-            </div>
+                {editUser.roleId === 2 ? (
+                  <>
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </>
+                )}
+              </select>
+              <div className="flex justify-center space-x-4 mt-4">
+                <button
+                  type="submit"
+                  className="bg-green-500 px-4 py-2 rounded-md text-white"
+                >
+                  Opslaan
+                </button>
+                <button
+                  type="button"
+                  className="bg-red-500 px-4 py-2 rounded-md text-white"
+                  onClick={() => setEditUser(null)}
+                >
+                  Annuleren
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
