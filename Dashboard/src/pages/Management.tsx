@@ -22,11 +22,13 @@ interface Alert {
   id: number;
   thresholdType: string;
   threshold: number;
+  thresholdUnit: "kw" | "kwh";  // Nieuw toegevoegd
   message: string;
   userId: number;
   entity_id: number;
   time_start: string;
   time_end: string;
+  duration: number; // Nieuw toegevoegd
 }
 
 export default function Management() {
@@ -37,6 +39,7 @@ export default function Management() {
   const [modal, setModal] = useState<{ type: string; itemId: number | null; user?: User; alert?: Alert }>({ type: "", itemId: null });
   const [editUser, setEditUser] = useState<User | null>(null);
   const [password, setPassword] = useState<string>("");
+  const [newAlert, setNewAlert] = useState<Partial<Alert>>({});
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -186,6 +189,36 @@ export default function Management() {
     }
   };
 
+  const handleAlertChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewAlert({ ...newAlert, [name]: value });
+  };
+
+  const handleSaveAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:3000/api/alerts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newAlert),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Fout bij aanmaken alert: ${response.status}`);
+      }
+
+      const createdAlert = await response.json();
+      setAlerts([...alerts, createdAlert]);
+      setNewAlert({});
+      setModal({ type: "", itemId: null });
+    } catch (error) {
+      console.error("Fout bij aanmaken alert:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#0E1E3D] text-black">
@@ -237,6 +270,9 @@ export default function Management() {
         {/* Beheer Alerts */}
         <div className="bg-[#FFEC56] p-6 rounded-lg shadow-lg w-full max-w-4xl">
           <h2 className="text-xl font-bold mb-4">Alerts</h2>
+          <button className="bg-green-500 px-4 py-2 rounded text-white hover:bg-green-700 mb-4" onClick={() => setModal({ type: "createAlert", itemId: null })}>
+            Alert Aanmaken
+          </button>
           {alerts.map(alert => (
             <div key={alert.id} className="flex justify-between items-center p-2 text-black">
               <p className="text-black">{alert.message}</p>
@@ -373,6 +409,122 @@ export default function Management() {
           </div>
         </div>
       )}
+
+      {/* Alert Aanmaken Modal */}
+      {modal.type === "createAlert" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+          <div className="bg-yellow-400 p-10 rounded-lg shadow-lg text-center w-full max-w-lg">
+            <h2 className="text-xl text-black font-bold mb-4">Alert Aanmaken</h2>
+            <form onSubmit={handleSaveAlert}>
+              
+              {/* Dropdown voor Threshold Type */}
+              <select
+                name="thresholdType"
+                value={newAlert.thresholdType || ""}
+                onChange={handleAlertChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
+              >
+                <option value="" disabled>Threshold Type</option>
+                <option value="minimum">Minimaal</option>
+                <option value="maximum">Maximaal</option>
+              </select>
+
+              {/* Threshold invoerveld + dropdown voor eenheid */}
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  name="threshold"
+                  placeholder="Threshold waarde"
+                  value={newAlert.threshold || ""}
+                  onChange={handleAlertChange}
+                  className="w-3/4 mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                  required
+                />
+                <select
+                  name="thresholdUnit"
+                  value={newAlert.thresholdUnit || "kW"}
+                  onChange={handleAlertChange}
+                  className="w-1/4 mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                >
+                  <option value="kW">kW</option>
+                  <option value="kWh">kWh</option>
+                </select>
+              </div>
+
+              {/* Message */}
+              <input
+                type="text"
+                name="message"
+                placeholder="Message"
+                value={newAlert.message || ""}
+                onChange={handleAlertChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
+              />
+
+              {/* Entity ID */}
+              <input
+                type="number"
+                name="entity_id"
+                placeholder="Entity Id"
+                value={newAlert.entity_id || ""}
+                onChange={handleAlertChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
+              />
+
+              {/* Tijd selectie voor Time Start & Time End */}
+              <div className="flex space-x-2">
+                <input
+                  type="time"
+                  name="time_start"
+                  value={newAlert.time_start || ""}
+                  onChange={handleAlertChange}
+                  className="w-1/2 mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                  required
+                />
+                <input
+                  type="time"
+                  name="time_end"
+                  value={newAlert.time_end || ""}
+                  onChange={handleAlertChange}
+                  className="w-1/2 mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                  required
+                />
+              </div>
+
+              {/* Duration in seconden */}
+              <input
+                type="number"
+                name="duration"
+                placeholder="Duur (in seconden)"
+                value={newAlert.duration || ""}
+                onChange={handleAlertChange}
+                className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+                required
+              />
+
+              <div className="flex justify-center space-x-4 mt-4">
+                <button
+                  type="submit"
+                  className="bg-green-500 px-4 py-2 rounded-md text-white"
+                >
+                  Opslaan
+                </button>
+                <button
+                  type="button"
+                  className="bg-red-500 px-4 py-2 rounded-md text-white"
+                  onClick={() => setModal({ type: "", itemId: null })}
+                >
+                  Annuleren
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
