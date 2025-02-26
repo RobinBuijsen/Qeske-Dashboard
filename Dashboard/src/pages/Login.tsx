@@ -1,38 +1,34 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginUser, LoginData } from "../api/api";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState<LoginData>({
+    username: "",
+    password: "",
+  });
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Tijdelijke inloggegevens
-  const validUsername = "U1";
-  const validPassword = "123";
-
-  // Inloggen
-  const handleLogin = () => {
-    if (username === validUsername && password === validPassword) {
-      navigate("/home"); // Navigeren naar de homepagina
-    } else {
-      setErrorMessage("Username or password incorrect");
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Functie om Enter-toets te detecteren
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault(); // Voorkom standaard herladen van de pagina
-      handleLogin();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const response = await loginUser(formData);
+
+    if (response.token) {
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("role", JSON.stringify(response.user.role));
+      navigate("/home"); // Stuur gebruiker door naar de homepagina
+    } else {
+      setErrorMessage(response.message || "Inloggen mislukt.");
     }
   };
 
   return (
-    <div
-      className="w-screen h-screen flex items-center justify-center bg-[#0E1E3D]"
-      onKeyDown={handleKeyDown} // Detecteert Enter-toets
-    >
+    <div className="w-screen h-screen flex items-center justify-center bg-[#0E1E3D]">
       <div className="text-center">
         {/* Logo */}
         <img
@@ -46,7 +42,7 @@ export default function Login() {
 
         {/* Login Card */}
         <div className="bg-[#FFEC56] p-10 sm:p-16 rounded-lg shadow-lg w-full max-w-lg mb-14">
-          <div className="flex flex-col items-center">
+          <form onSubmit={handleSubmit} className="flex flex-col items-center">
             {/* Icon */}
             <div className="bg-[#0E1E3D] text-[#FFEC56] rounded-full p-6 mt-0,1 mb-6">
               <svg
@@ -68,17 +64,21 @@ export default function Login() {
             {/* Input Fields */}
             <input
               type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              name="username"
+              placeholder="Gebruikersnaam"
+              value={formData.username}
+              onChange={handleChange}
               className="w-full mb-4 p-2 rounded-lg border border-[#0E1E3D] text-[black] focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+              required
             />
             <input
               type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              placeholder="Wachtwoord"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full mb-6 p-2 rounded-lg border border-[#0E1E3D] text-[black] focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+              required
             />
 
             {/* Error Message */}
@@ -86,21 +86,21 @@ export default function Login() {
 
             {/* Login Button */}
             <button
-              onClick={handleLogin}
+              type="submit"
               className="bg-[#0E1E3D] text-[#FFEC56] py-2 px-4 rounded-lg hover:bg-[#0C172F] transition w-full"
             >
               Log in
             </button>
+          </form>
 
-            {/* Links */}
-            <div className="text-sm text-[#3474FF] space-y-2 mt-5">
-              <a href="/register" className="block hover:underline">
-                account aanmaken
-              </a>
-              <a href="/forgot-password" className="block hover:underline">
-                wachtwoord vergeten
-              </a>
-            </div>
+          {/* Links */}
+          <div className="text-sm text-[#3474FF] space-y-2 mt-5">
+            <a href="/register" className="block hover:underline">
+              Account aanmaken
+            </a>
+            <a href="/forgot-password" className="block hover:underline">
+              Wachtwoord vergeten
+            </a>
           </div>
         </div>
       </div>

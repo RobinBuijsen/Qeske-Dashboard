@@ -22,6 +22,9 @@ const Reports: React.FC = () => {
   const [alertMessage, setAlertMessage] = useState("");
   const [alertThreshold, setAlertThreshold] = useState(0);
 
+  const storedRole = localStorage.getItem("role");
+  const userRole = storedRole ? JSON.parse(storedRole).name : "user";
+
   // Dummy verbruik om te testen of de alert werkt
   const testCurrentUsage = 20; // Verbruik in kW (Voor testdoeleinden boven drempelwaarde)
   const testSolarProduction = 45; // Zonne-energie productie in kW
@@ -148,12 +151,14 @@ const Reports: React.FC = () => {
                   className="bg-gray-900 text-white px-2 py-2 rounded-md border border-yellow-500"
                 />
               </div>
-              <button
-                className="bg-yellow-500 text-black px-3 py-2 rounded-md font-bold hover:bg-yellow-600"
-                onClick={() => setShowAlertPopup(true)}
-              >
-                Alert instellen
-              </button>
+              {userRole === "admin" && (
+                <button
+                  className="bg-yellow-500 text-black px-3 py-2 rounded-md font-bold hover:bg-yellow-600"
+                  onClick={() => setShowAlertPopup(true)}
+                >
+                  Alert instellen
+                </button>
+              )}
             </div>
 
             <div className="flex space-x-6">

@@ -9,6 +9,7 @@ import HeatPumps from "./pages/HeatPumps";
 import Buildings from "./pages/Buildings";
 import Consumers from "./pages/Consumers";
 import Reports from "./pages/Reports"; 
+import Management from "./pages/Management";
 
 function App() {
   return (
@@ -43,6 +44,9 @@ function App() {
 
         {/* Zie rapporten pagina */}
         <Route path="/reports" element={<Reports />} /> 
+
+        {/* Zie beheer pagina */}
+        <Route path="/management" element={<Management />} /> 
       </Routes>
     </Router>
   );

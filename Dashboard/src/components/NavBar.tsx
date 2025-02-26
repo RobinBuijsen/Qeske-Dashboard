@@ -3,7 +3,7 @@ import { BsLightbulb } from "react-icons/bs";
 import { FaUserCircle } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";  // << IMPORT useNavigate
+import { useNavigate } from "react-router-dom";  
 
 export default function NavBar() {
   const [currentTime, setCurrentTime] = useState<string>("");
@@ -12,7 +12,11 @@ export default function NavBar() {
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
   const [showProfile, setShowProfile] = useState<boolean>(false);
 
-  const navigate = useNavigate(); // << INITIALISE NAVIGATE HOOK
+  const navigate = useNavigate();
+  const storedRole = localStorage.getItem("role");
+  const userRole = storedRole ? JSON.parse(storedRole).name : "user";
+  console.log("Correcte gebruikersrol:", userRole); // Debugging
+  
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -34,6 +38,8 @@ export default function NavBar() {
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
     navigate("/"); 
   };
 
@@ -54,21 +60,30 @@ export default function NavBar() {
 
         {/* Navigatieknoppen */}
         <div className="flex space-x-2">
+          {/* Alleen zichtbaar voor admins */}
+          {userRole === "admin" && (
+            <button 
+              className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm" 
+              onClick={() => navigate("/management")}
+            >
+              Beheer
+            </button>
+          )}
           <button 
             className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
-            onClick={() => navigate("/reports")}  // << Navigatie toevoegen
+            onClick={() => navigate("/reports")}
           >
             Rapporten
           </button>
           <button 
             className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
-            onClick={() => navigate("/consumers")}  // << Navigatie toevoegen
+            onClick={() => navigate("/consumers")}
           >
             Zie verbruikers
           </button>
           <button 
             className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
-            onClick={() => navigate("/energyflow")}  // << Navigatie naar energieflow diagrammen
+            onClick={() => navigate("/energyflow")}
           >
             Energieflow Diagrammen
           </button>
