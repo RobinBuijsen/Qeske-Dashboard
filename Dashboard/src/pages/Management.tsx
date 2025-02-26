@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { getUserById, updateUser } from "../api/api";
+import { createAlert } from "../api/api";
 
 console.log("Management.tsx geladen");
 
@@ -194,30 +195,40 @@ export default function Management() {
     setNewAlert({ ...newAlert, [name]: value });
   };
 
-  const handleSaveAlert = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch("http://localhost:3000/api/alerts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newAlert),
-      });
+const handleSaveAlert = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-      if (!response.ok) {
-        throw new Error(`Fout bij aanmaken alert: ${response.status}`);
-      }
+  try {
+    // Bouw het alert object
+    const alertData = {
+      thresholdType: newAlert.thresholdType ?? "minimum",
+      threshold: parseFloat(String(newAlert.threshold ?? "0")),
+      thresholdUnit: newAlert.thresholdUnit ?? "kw",
+      message: newAlert.message ?? "",
+      userId: 1, // Dit moet dynamisch worden, haal user ID op van de ingelogde gebruiker
+      entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
+      time_start: newAlert.time_start ? newAlert.time_start + ":00" : "00:00:00",
+      time_end: newAlert.time_end ? newAlert.time_end + ":00" : "00:00:00",
+      duration: parseInt(String(newAlert.duration ?? "60"), 10),
+    };
 
-      const createdAlert = await response.json();
-      setAlerts([...alerts, createdAlert]);
-      setNewAlert({});
-      setModal({ type: "", itemId: null });
-    } catch (error) {
-      console.error("Fout bij aanmaken alert:", error);
+    console.log("Nieuwe alert die wordt verzonden:", alertData);
+
+    // Verstuur de alert via de API
+    const createdAlert = await createAlert(alertData, token!);
+
+    if (createdAlert) {
+      setAlerts([...alerts, createdAlert]); // Voeg nieuwe alert toe aan de lijst
+      setNewAlert({}); // Reset inputvelden
+      setModal({ type: "", itemId: null }); // Sluit modal
     }
-  };
+  } catch (error) {
+    console.error("Fout bij opslaan alert:", error);
+  }
+};
+
+
+;
 
   if (loading) {
     return (

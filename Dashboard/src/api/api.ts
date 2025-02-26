@@ -8,6 +8,19 @@ export interface UserData {
   password: string;
 }
 
+// Interface voor alerts
+export interface AlertData {
+  thresholdType: string;
+  threshold: number;
+  thresholdUnit: "kw" | "kwh";
+  message: string;
+  userId: number;
+  entity_id: number;
+  time_start: string;
+  time_end: string;
+  duration: number;
+}
+
 // Gebruiker registreren
 export const registerUser = async (userData: UserData) => {
   try {
@@ -127,6 +140,66 @@ export const getUserById = async (id: number, token: string) => {
   } catch (error) {
     console.error("Fout bij ophalen gebruiker:", error);
     return null;
+  }
+};
+
+// Alerts ophalen
+export const fetchAlerts = async (token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/alerts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij ophalen alerts: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fout bij ophalen alerts:", error);
+    return [];
+  }
+};
+
+// Nieuwe alert aanmaken
+export const createAlert = async (alertData: AlertData, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/alerts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(alertData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij aanmaken alert: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fout bij aanmaken alert:", error);
+    return null;
+  }
+};
+
+// Alert verwijderen
+export const deleteAlert = async (id: number, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/alerts/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij verwijderen alert: ${response.status}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Fout bij verwijderen alert:", error);
+    return false;
   }
 };
 

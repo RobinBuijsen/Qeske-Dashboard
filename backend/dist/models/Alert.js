@@ -24,6 +24,11 @@ const Alert = db_1.default.define("Alert", {
         type: sequelize_1.DataTypes.FLOAT,
         allowNull: false,
     },
+    thresholdUnit: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "kW",
+    },
     time_start: {
         type: sequelize_1.DataTypes.TIME,
         allowNull: true,

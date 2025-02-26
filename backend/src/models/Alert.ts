@@ -20,6 +20,11 @@ const Alert = db.define("Alert", {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
+  thresholdUnit: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: "kW",
+  },
   time_start: { // 🔹 Nieuw: tijdsgebonden alerts
     type: DataTypes.TIME,
     allowNull: true,
