@@ -21,6 +21,20 @@ export interface AlertData {
   duration: number;
 }
 
+interface Alert {
+  id: number;
+  thresholdType: string;
+  threshold: number;
+  thresholdUnit: "kw" | "kwh";
+  message: string;
+  userId: number;
+  entity_id: number;
+  time_start: string;
+  time_end: string;
+  duration: number;
+}
+
+
 // Gebruiker registreren
 export const registerUser = async (userData: UserData) => {
   try {
@@ -183,6 +197,33 @@ export const createAlert = async (alertData: AlertData, token: string) => {
     return null;
   }
 };
+
+// Alert aanpassen
+export const updateAlert = async (id: number, alertData: Partial<Alert>, token: string) => {
+  try {
+    console.log("📨 Data die naar de API wordt gestuurd:", alertData);
+
+    const response = await fetch(`${API_BASE_URL}/alerts/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(alertData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij updaten alert: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("❌ Fout bij updaten alert:", error);
+    return null;
+  }
+};
+
+
 
 // Alert verwijderen
 export const deleteAlert = async (id: number, token: string) => {

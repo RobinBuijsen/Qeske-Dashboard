@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { getUserById, updateUser } from "../api/api";
 import { createAlert } from "../api/api";
+import { updateAlert } from "../api/api";
 
 console.log("Management.tsx geladen");
 
@@ -23,13 +24,13 @@ interface Alert {
   id: number;
   thresholdType: string;
   threshold: number;
-  thresholdUnit: "kw" | "kwh";  // Nieuw toegevoegd
+  thresholdUnit: "kw" | "kwh"; 
   message: string;
   userId: number;
   entity_id: number;
   time_start: string;
   time_end: string;
-  duration: number; // Nieuw toegevoegd
+  duration: number; 
 }
 
 export default function Management() {
@@ -195,37 +196,77 @@ export default function Management() {
     setNewAlert({ ...newAlert, [name]: value });
   };
 
-const handleSaveAlert = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleEditAlert = (alert: Alert) => {
+    setNewAlert(alert); // Vul formulier met bestaande alert-data
+    setModal({ type: "editAlert", itemId: alert.id }); // Open modal voor bewerken
+  };
 
-  try {
-    // Bouw het alert object
-    const alertData = {
-      thresholdType: newAlert.thresholdType ?? "minimum",
-      threshold: parseFloat(String(newAlert.threshold ?? "0")),
-      thresholdUnit: newAlert.thresholdUnit ?? "kw",
-      message: newAlert.message ?? "",
-      userId: 1, // Dit moet dynamisch worden, haal user ID op van de ingelogde gebruiker
-      entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
-      time_start: newAlert.time_start ? newAlert.time_start + ":00" : "00:00:00",
-      time_end: newAlert.time_end ? newAlert.time_end + ":00" : "00:00:00",
-      duration: parseInt(String(newAlert.duration ?? "60"), 10),
-    };
-
-    console.log("Nieuwe alert die wordt verzonden:", alertData);
-
-    // Verstuur de alert via de API
-    const createdAlert = await createAlert(alertData, token!);
-
-    if (createdAlert) {
-      setAlerts([...alerts, createdAlert]); // Voeg nieuwe alert toe aan de lijst
-      setNewAlert({}); // Reset inputvelden
-      setModal({ type: "", itemId: null }); // Sluit modal
+  const handleUpdateAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    try {
+      const alertData = {
+        thresholdType: newAlert.thresholdType ?? "minimum",
+        threshold: parseFloat(String(newAlert.threshold ?? "0")),
+        thresholdUnit: newAlert.thresholdUnit ?? "kw",
+        message: newAlert.message ?? "",
+        userId: 1,
+        entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
+        time_start: newAlert.time_start ? newAlert.time_start + ":00" : "00:00:00",
+        time_end: newAlert.time_end ? newAlert.time_end + ":00" : "00:00:00",
+        duration: parseInt(String(newAlert.duration ?? "60"), 10),
+      };
+  
+      console.log("Alert die wordt geüpdatet:", alertData);
+  
+      const updatedAlert = await updateAlert(newAlert.id!, alertData, token!);
+  
+      if (updatedAlert) {
+        setAlerts(alerts.map(alert => (alert.id === updatedAlert.id ? updatedAlert : alert)));
+        setNewAlert({});
+        setModal({ type: "", itemId: null });
+      }
+    } catch (error) {
+      console.error("Fout bij updaten alert:", error);
     }
-  } catch (error) {
-    console.error("Fout bij opslaan alert:", error);
-  }
-};
+  };
+  
+  
+
+  const handleSaveAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("🚀 Opslaan knop geklikt!");
+  
+    try {
+      const alertData = {
+        thresholdType: newAlert.thresholdType ?? "minimum",
+        threshold: parseFloat(String(newAlert.threshold ?? "0")),
+        thresholdUnit: newAlert.thresholdUnit ?? "kw",
+        message: newAlert.message ?? "",
+        userId: 1,
+        entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
+        time_start: newAlert.time_start ? newAlert.time_start + ":00" : "00:00:00",
+        time_end: newAlert.time_end ? newAlert.time_end + ":00" : "00:00:00",
+        duration: parseInt(String(newAlert.duration ?? "60"), 10),
+      };
+  
+      console.log("📨 Alert wordt verstuurd naar API:", alertData);
+  
+      const createdAlert = await createAlert(alertData, token!);
+  
+      if (createdAlert) {
+        console.log("✅ Alert succesvol opgeslagen in de database!", createdAlert);
+        setAlerts([...alerts, createdAlert]);
+        setNewAlert({});
+        setModal({ type: "", itemId: null });
+      } else {
+        console.error("❌ Alert niet correct opgeslagen in de database");
+      }
+    } catch (error) {
+      console.error("❌ Fout bij opslaan alert:", error);
+    }
+  };
+  
 
 
 ;
@@ -279,16 +320,22 @@ const handleSaveAlert = async (e: React.FormEvent) => {
         </div>
 
         {/* Beheer Alerts */}
-        <div className="bg-[#FFEC56] p-6 rounded-lg shadow-lg w-full max-w-4xl">
+        <div className="bg-[#FFEC56] p-6 rounded-lg shadow-lg w-full max-w-4xl relative">
           <h2 className="text-xl font-bold mb-4">Alerts</h2>
-          <button className="bg-green-500 px-4 py-2 rounded text-white hover:bg-green-700 mb-4" onClick={() => setModal({ type: "createAlert", itemId: null })}>
-            Alert Aanmaken
+
+          <button className="absolute top-4 mr-3 right-4 bg-green-500 px-4 py-1 rounded text-white hover:bg-green-700" 
+          onClick={() => setModal({ type: "createAlert", itemId: null })}>
+            Nieuwe alert Aanmaken
           </button>
           {alerts.map(alert => (
             <div key={alert.id} className="flex justify-between items-center p-2 text-black">
               <p className="text-black">{alert.message}</p>
               <div className="flex gap-2">
-                <button className="bg-blue-500 px-4 py-1 rounded text-white hover:bg-blue-700">Bewerken</button>
+              <button
+                className="bg-blue-500 px-4 py-1 rounded text-white hover:bg-blue-700"
+                onClick={() => handleEditAlert(alert)}>
+                Bewerken
+               </button>
                 <button className="bg-red-500 px-4 py-1 rounded text-white hover:bg-red-700" onClick={() => setModal({ type: "deleteAlert", itemId: alert.id, alert })}>
                   Verwijderen
                 </button>
@@ -331,7 +378,7 @@ const handleSaveAlert = async (e: React.FormEvent) => {
         </div>
       )}
 
-      {/* Bewerken Modal */}
+      {/* Gebruiker Bewerken Modal */}
       {editUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
           <div className="bg-yellow-400 p-10 rounded-lg shadow-lg text-center w-full max-w-lg">
@@ -536,6 +583,116 @@ const handleSaveAlert = async (e: React.FormEvent) => {
         </div>
       )}
 
+      {/* Alert Bewerken Modal */}
+{modal.type === "editAlert" && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+    <div className="bg-yellow-400 p-10 rounded-lg shadow-lg text-center w-full max-w-lg">
+      <h2 className="text-xl text-black font-bold mb-4">Alert Bewerken</h2>
+      <form onSubmit={handleUpdateAlert}>
+
+        <select
+          name="thresholdType"
+          value={newAlert.thresholdType || ""}
+          onChange={handleAlertChange}
+          className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
+          required
+        >
+          <option value="minimum">Minimaal</option>
+          <option value="maximum">Maximaal</option>
+        </select>
+
+        <div className="flex space-x-2">
+          <input
+            type="number"
+            name="threshold"
+            placeholder="Threshold waarde"
+            value={newAlert.threshold || ""}
+            onChange={handleAlertChange}
+            className="w-3/4 mb-4 p-2 rounded-lg border border-gray-800 text-black"
+            required
+          />
+          <select
+            name="thresholdUnit"
+            value={newAlert.thresholdUnit || "kW"}
+            onChange={handleAlertChange}
+            className="w-1/4 mb-4 p-2 rounded-lg border border-gray-800 text-black"
+          >
+            <option value="kW">kW</option>
+            <option value="kWh">kWh</option>
+          </select>
+        </div>
+
+        <input
+          type="text"
+          name="message"
+          placeholder="Message"
+          value={newAlert.message || ""}
+          onChange={handleAlertChange}
+          className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black"
+          required
+        />
+
+        <input
+          type="number"
+          name="entity_id"
+          placeholder="Entity Id"
+          value={newAlert.entity_id || ""}
+          onChange={handleAlertChange}
+          className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black"
+          required
+        />
+
+        <div className="flex space-x-2">
+          <input
+            type="time"
+            name="time_start"
+            value={newAlert.time_start || ""}
+            onChange={handleAlertChange}
+            className="w-1/2 mb-4 p-2 rounded-lg border border-gray-800 text-black"
+            required
+          />
+          <input
+            type="time"
+            name="time_end"
+            value={newAlert.time_end || ""}
+            onChange={handleAlertChange}
+            className="w-1/2 mb-4 p-2 rounded-lg border border-gray-800 text-black"
+            required
+          />
+        </div>
+
+        <input
+          type="number"
+          name="duration"
+          placeholder="Duur (in seconden)"
+          value={newAlert.duration || ""}
+          onChange={handleAlertChange}
+          className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black"
+          required
+        />
+
+        <div className="flex justify-center space-x-4 mt-4">
+          <button
+            type="submit"
+            className="bg-green-500 px-4 py-2 rounded-md text-white"
+          >
+            Opslaan
+          </button>
+          <button
+            type="button"
+            className="bg-red-500 px-4 py-2 rounded-md text-white"
+            onClick={() => setModal({ type: "", itemId: null })}
+          >
+            Annuleren
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
+
     </>
   );
 }
+
