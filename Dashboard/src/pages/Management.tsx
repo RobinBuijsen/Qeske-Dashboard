@@ -93,6 +93,7 @@ export default function Management() {
     }
   };
 
+  {/* Gebruiker goedkeuren */}
   const approveUser = async (id: number) => {
     try {
       await fetch(`http://localhost:3000/api/users/${id}/approve`, {
@@ -106,6 +107,7 @@ export default function Management() {
     setModal({ type: "", itemId: null });
   };
 
+  {/* Gebruiker afwijzen */}
   const rejectUser = async (id: number) => {
     try {
       await fetch(`http://localhost:3000/api/users/${id}`, {
@@ -119,6 +121,7 @@ export default function Management() {
     setModal({ type: "", itemId: null });
   };
 
+  {/* Gebruiker verwijderen */}
   const deleteUser = async (id: number) => {
     try {
       await fetch(`http://localhost:3000/api/users/${id}`, {
@@ -132,6 +135,7 @@ export default function Management() {
     setModal({ type: "", itemId: null });
   };
 
+  {/* Alert verwijderen */}
   const deleteAlert = async (id: number) => {
     try {
       await fetch(`http://localhost:3000/api/alerts/${id}`, {
@@ -145,6 +149,7 @@ export default function Management() {
     setModal({ type: "", itemId: null });
   };
 
+  {/* Gebruiker bewerken */}
   const handleEditUser = async (userId: number) => {
     try {
       const userData = await getUserById(userId, token!);
@@ -157,6 +162,7 @@ export default function Management() {
     }
   };
 
+  {/* Gebruiker opslaan */}
   const handleSaveUser = async () => {
     if (!editUser) return;
 
@@ -178,6 +184,7 @@ export default function Management() {
     }
   };
 
+  {/* Gebruiker bewerken */}
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (editUser) {
       const { name, value } = e.target;
@@ -191,48 +198,61 @@ export default function Management() {
     }
   };
 
+  {/* Alert Aanmaken */}
   const handleAlertChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewAlert({ ...newAlert, [name]: value });
   };
 
+  {/* Alert Bewerken */}
   const handleEditAlert = (alert: Alert) => {
-    setNewAlert(alert); // Vul formulier met bestaande alert-data
-    setModal({ type: "editAlert", itemId: alert.id }); // Open modal voor bewerken
+    setNewAlert(alert); 
+    setModal({ type: "editAlert", itemId: alert.id }); 
   };
 
+  {/* Alert Opslaan */}
   const handleUpdateAlert = async (e: React.FormEvent) => {
     e.preventDefault();
   
     try {
+
+      const formatTime = (time: string | undefined) => {
+        if (!time) return "00:00:00";
+        const [hours, minutes] = time.split(":");
+        return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}:00`;
+      };
+
       const alertData = {
         thresholdType: newAlert.thresholdType ?? "minimum",
         threshold: parseFloat(String(newAlert.threshold ?? "0")),
         thresholdUnit: newAlert.thresholdUnit ?? "kw",
         message: newAlert.message ?? "",
         userId: 1,
+        time_start: formatTime(newAlert.time_start),
+        time_end: formatTime(newAlert.time_end),
         entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
-        time_start: newAlert.time_start ? newAlert.time_start + ":00" : "00:00:00",
-        time_end: newAlert.time_end ? newAlert.time_end + ":00" : "00:00:00",
         duration: parseInt(String(newAlert.duration ?? "60"), 10),
       };
   
+      console.log("📨 Data die naar de API wordt gestuurd:", JSON.stringify(alertData, null, 2));
       console.log("Alert die wordt geüpdatet:", alertData);
   
       const updatedAlert = await updateAlert(newAlert.id!, alertData, token!);
   
       if (updatedAlert) {
-        setAlerts(alerts.map(alert => (alert.id === updatedAlert.id ? updatedAlert : alert)));
+        console.log("✅ Alert succesvol geüpdatet!");
+  
+        await fetchAlerts();
+  
         setNewAlert({});
         setModal({ type: "", itemId: null });
       }
     } catch (error) {
-      console.error("Fout bij updaten alert:", error);
+      console.error("❌ Fout bij updaten alert:", error);
     }
   };
   
-  
-
+  {/* Alert Opslaan */}
   const handleSaveAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("🚀 Opslaan knop geklikt!");
@@ -266,11 +286,7 @@ export default function Management() {
       console.error("❌ Fout bij opslaan alert:", error);
     }
   };
-  
-
-
 ;
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#0E1E3D] text-black">

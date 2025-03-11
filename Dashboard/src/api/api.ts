@@ -201,7 +201,7 @@ export const createAlert = async (alertData: AlertData, token: string) => {
 // Alert aanpassen
 export const updateAlert = async (id: number, alertData: Partial<Alert>, token: string) => {
   try {
-    console.log("📨 Data die naar de API wordt gestuurd:", alertData);
+    console.log("📨 Data die naar de API wordt gestuurd:", JSON.stringify(alertData, null, 2));
 
     const response = await fetch(`${API_BASE_URL}/alerts/${id}`, {
       method: "PUT",
@@ -212,16 +212,20 @@ export const updateAlert = async (id: number, alertData: Partial<Alert>, token: 
       body: JSON.stringify(alertData),
     });
 
+    const responseText = await response.text(); // Haal de volledige error-inhoud op
+
     if (!response.ok) {
-      throw new Error(`Fout bij updaten alert: ${response.status}`);
+      throw new Error(`❌ Fout bij updaten alert: ${response.status} - ${responseText}`);
     }
 
-    return await response.json();
+    console.log("✅ Alert succesvol geüpdatet:", responseText);
+    return JSON.parse(responseText); // Parse de JSON alleen als het een geldige response is
   } catch (error) {
-    console.error("❌ Fout bij updaten alert:", error);
+    console.error("❌ API Fout:", error);
     return null;
   }
 };
+
 
 
 
