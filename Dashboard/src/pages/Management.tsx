@@ -5,7 +5,6 @@ import { getUserById, updateUser } from "../api/api";
 import { createAlert } from "../api/api";
 import { updateAlert } from "../api/api";
 
-console.log("Management.tsx geladen");
 
 // Definieer een interface voor gebruikers
 interface User {
@@ -32,6 +31,7 @@ interface Alert {
   time_end: string;
   duration: number; 
 }
+
 
 export default function Management() {
   const navigate = useNavigate();
@@ -210,7 +210,7 @@ export default function Management() {
     setModal({ type: "editAlert", itemId: alert.id }); 
   };
 
-  {/* Alert Opslaan */}
+  {/* Alert bijwerken */}
   const handleUpdateAlert = async (e: React.FormEvent) => {
     e.preventDefault();
   
@@ -340,7 +340,11 @@ export default function Management() {
           <h2 className="text-xl font-bold mb-4">Alerts</h2>
 
           <button className="absolute top-4 mr-3 right-4 bg-green-500 px-4 py-1 rounded text-white hover:bg-green-700" 
-          onClick={() => setModal({ type: "createAlert", itemId: null })}>
+          onClick={() => {
+            setNewAlert({});
+            setModal({ type: "createAlert", itemId: null });
+          }}
+          >
             Nieuwe alert Aanmaken
           </button>
           {alerts.map(alert => (
@@ -711,4 +715,3 @@ export default function Management() {
     </>
   );
 }
-
