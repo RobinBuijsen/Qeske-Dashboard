@@ -11,7 +11,7 @@ const db_1 = __importDefault(require("./db"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const alertRoutes_1 = __importDefault(require("./routes/alertRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
-const influxRoutes_1 = __importDefault(require("./routes/influxRoutes"));
+const entityRoutes_1 = __importDefault(require("./routes/entityRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -21,7 +21,7 @@ app.use("/api/auth", authRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/alerts", alertRoutes_1.default);
 app.use("/api", authRoutes_1.default);
-app.use("/api/influx", influxRoutes_1.default);
+app.use("/api/entities", entityRoutes_1.default);
 app.use(body_parser_1.default.json());
 const PORT = process.env.PORT || 3000;
 // Database verbinden en server starten
