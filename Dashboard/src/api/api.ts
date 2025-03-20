@@ -1,5 +1,12 @@
 const API_BASE_URL = "http://localhost:3000/api";
 
+export interface Entity {
+  id: number;
+  entity_id: string;
+  name: string;
+  description: string;
+}
+
 export interface UserData {
   first_name: string;
   last_name: string;
@@ -247,5 +254,94 @@ export const deleteAlert = async (id: number, token: string) => {
     return false;
   }
 };
+
+// Entiteiten ophalen
+export const fetchEntities = async (token: string) => {
+  try {
+      console.log("➡️ fetchEntities wordt aangeroepen!");
+      
+      const response = await fetch(`${API_BASE_URL}/entities`, {
+          method: "GET",
+          headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+          }
+      });
+
+      console.log("📡 API Response ontvangen:", response);
+
+      if (!response.ok) {
+          throw new Error(`⚠️ Fout bij ophalen entiteiten: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("✅ Data van API:", data);
+
+      return data;
+  } catch (error) {
+      console.error("❌ Fout bij ophalen entiteiten:", error);
+      return [];
+  }
+};
+
+
+// Entiteit aanmaken
+export const createEntity = async (entityData: Partial<Entity>, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/entities`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(entityData),
+    });
+    return response.json();
+  } catch (error) {
+    console.error("Fout bij aanmaken entiteit:", error);
+    return null;
+  }
+};
+
+// Entiteit updaten
+export const updateEntity = async (id: number, entityData: Partial<Entity>, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/entities/${id}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify(entityData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij updaten entiteit: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fout bij updaten entiteit:", error);
+    return null;
+  }
+};
+
+// Entiteit verwijderen
+export const deleteEntity = async (id: number, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/entities/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij verwijderen entiteit: ${response.status}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Fout bij verwijderen entiteit:", error);
+    return false;
+  }
+};
+
+
 
 

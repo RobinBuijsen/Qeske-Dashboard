@@ -4,7 +4,7 @@ import NavBar from "../components/NavBar";
 import { getUserById, updateUser } from "../api/api";
 import { createAlert } from "../api/api";
 import { updateAlert } from "../api/api";
-
+import EntityManagement from "../components/EntityManagement";
 
 // Definieer een interface voor gebruikers
 interface User {
@@ -363,7 +363,12 @@ export default function Management() {
             </div>
           ))}
         </div>
+
+        {/* Beheer Entiteiten */}
+        <EntityManagement token={token!} />
       </div>
+
+
 
       {/* Confirmatie Modal */}
       {modal.type && (modal.user || modal.alert) && (

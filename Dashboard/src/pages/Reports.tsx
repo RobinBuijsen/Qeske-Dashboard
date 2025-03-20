@@ -134,16 +134,16 @@ const Reports: React.FC = () => {
                 <h2 className="text-lg font-bold mb-1">Meterstanden</h2>
                 <div className="flex flex-col space-y-4 text-xs">
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter1 />
+                    <Meter1 value={50} />
                   </div>
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter2 />
+                    <Meter2 value={75} />
                   </div>
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter3 />
+                    <Meter3 value={100} />
                   </div>
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter4 />
+                    <Meter4 value={0} />
                   </div>
                 </div>
               </div>
