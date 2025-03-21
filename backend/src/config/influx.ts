@@ -13,3 +13,19 @@ const influx = new InfluxDB({
 });
 
 export default influx;
+
+/**
+ * Controleert of een entity_id bestaat in InfluxDB
+ * @param entityId De entity_id die gecontroleerd moet worden
+ * @returns {Promise<boolean>} True als de entity_id bestaat, anders false
+ */
+export async function checkEntityExistsInInflux(entityId: string): Promise<boolean> {
+  try {
+    const measurements = await influx.getMeasurements();
+
+    return measurements.includes(entityId);
+  } catch (error) {
+    console.error('❌ Fout bij ophalen van measurements uit InfluxDB:', error);
+    return false;
+  }
+}

@@ -12,8 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
+exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
 const Entity_1 = __importDefault(require("../models/Entity"));
+const influx_1 = __importDefault(require("../config/influx"));
 // ✅ Nieuwe entiteit aanmaken (alleen admin)
 const createEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -26,6 +27,13 @@ const createEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             res.status(400).json({ message: "entity_id en name zijn verplicht." });
             return;
         }
+        // 🔹 Controleer of entity_id bestaat in InfluxDB
+        const existsInInflux = yield checkEntityExistsInInflux(entity_id);
+        if (!existsInInflux) {
+            res.status(400).json({ message: `De entity_id '${entity_id}' bestaat niet in InfluxDB.` });
+            return;
+        }
+        // 🔹 Als de entity_id wél bestaat in InfluxDB, sla op in MySQL
         const newEntity = yield Entity_1.default.create({ entity_id, name, description });
         res.status(201).json(newEntity);
     }
@@ -109,3 +117,44 @@ const deleteEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.deleteEntity = deleteEntity;
+const validateEntityId = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { entity_id } = req.params;
+        if (!entity_id) {
+            res.status(400).json({ message: "Geen entity_id opgegeven." });
+            return;
+        }
+        // Controleer of entity_id bestaat in InfluxDB
+        const exists = yield checkEntityExistsInInflux(entity_id);
+        res.json({ exists });
+    }
+    catch (error) {
+        console.error("❌ Fout bij validatie van entity_id:", error);
+        res.status(500).json({ message: "Interne serverfout", error });
+    }
+});
+exports.validateEntityId = validateEntityId;
+// ✅ Functie om te controleren of een entity_id in InfluxDB bestaat
+const checkEntityExistsInInflux = (entity_id) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // 🔹 Stap 1: Haal alle measurements op uit InfluxDB
+        const measurementsResult = yield influx_1.default.query(`SHOW MEASUREMENTS`);
+        const measurements = measurementsResult.map((row) => row.name);
+        console.log("📌 Opgehaalde measurements:", measurements);
+        // 🔹 Stap 2: Controleer in elke measurement of entity_id bestaat
+        for (const measurement of measurements) {
+            const query = `SELECT * FROM "${measurement}" WHERE "entity_id" = '${entity_id}' LIMIT 1`;
+            const result = yield influx_1.default.query(query);
+            console.log(`📌 Query result in "${measurement}":`, result);
+            if (result.length > 0) {
+                return true; // ✅ entity_id gevonden in een van de measurements
+            }
+        }
+        console.log(`❌ entity_id "${entity_id}" niet gevonden in InfluxDB`);
+        return false;
+    }
+    catch (error) {
+        console.error("❌ Fout bij ophalen van InfluxDB gegevens:", error);
+        return false;
+    }
+});

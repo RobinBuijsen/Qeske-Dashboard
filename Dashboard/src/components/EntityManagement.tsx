@@ -13,6 +13,7 @@ export default function EntityManagement({ token }: { token: string }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [modal, setModal] = useState<{ type: string; entity?: Entity }>({ type: "" });
   const [newEntity, setNewEntity] = useState<Partial<Entity>>({});
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAllEntities = async () => {
@@ -22,7 +23,7 @@ export default function EntityManagement({ token }: { token: string }) {
         setEntities(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Fout bij ophalen entiteiten:", error);
-        setEntities([]); // Fallback to an empty array
+        setEntities([]);
       }
       setLoading(false);
     };
@@ -34,9 +35,37 @@ export default function EntityManagement({ token }: { token: string }) {
     setNewEntity({ ...newEntity, [e.target.name]: e.target.value });
   };
 
+  // ✅ Controleer of entity_id bestaat in InfluxDB
+  const checkEntityExists = async (entity_id: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`http://localhost:3000/api/entities/validate/${entity_id}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+            console.error("❌ API Error:", response.statusText);
+            return false;
+        }
+
+        const data = await response.json();
+        return data.exists || false;
+    } catch (error) {
+        console.error("❌ Fout bij controleren entity_id:", error);
+        return false;
+    }
+};
+
+
   const handleSaveEntity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEntity.entity_id || !newEntity.name) return;
+
+    const isValid = await checkEntityExists(newEntity.entity_id);
+    if (!isValid) {
+      setErrorModal(`De ingevoerde entity_id "${newEntity.entity_id}" bestaat niet in InfluxDB.`);
+      return;
+    }
 
     try {
       let savedEntity;
@@ -58,7 +87,7 @@ export default function EntityManagement({ token }: { token: string }) {
   };
 
   const handleEditEntity = (entity: Entity) => {
-    setNewEntity(entity); // Pre-fill the fields with the current entity data
+    setNewEntity(entity);
     setModal({ type: "edit", entity });
   };
 
@@ -83,7 +112,7 @@ export default function EntityManagement({ token }: { token: string }) {
       <button
         className="absolute top-4 right-4 bg-green-500 px-4 py-1 rounded text-white hover:bg-green-700"
         onClick={() => {
-          setNewEntity({}); // Clear fields for creating a new entity
+          setNewEntity({});
           setModal({ type: "create" });
         }}
       >
@@ -185,6 +214,23 @@ export default function EntityManagement({ token }: { token: string }) {
                 onClick={() => setModal({ type: "" })}
               >
                 Nee
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for error message */}
+      {errorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+          <div className="bg-yellow-400 p-6 rounded-lg shadow-lg text-center">
+            <h2 className="text-xl font-bold mb-4">{errorModal}</h2>
+            <div className="flex justify-center">
+              <button
+                className="bg-red-500 px-4 py-2 rounded-md text-white"
+                onClick={() => setErrorModal(null)}
+              >
+                OK
               </button>
             </div>
           </div>

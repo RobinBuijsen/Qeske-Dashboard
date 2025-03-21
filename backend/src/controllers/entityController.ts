@@ -1,27 +1,37 @@
 import { Request, Response } from "express";
 import Entity from "../models/Entity";
+import influx from "../config/influx";
 
 // ✅ Nieuwe entiteit aanmaken (alleen admin)
 export const createEntity = async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (req.user.role !== "admin") {
-      res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen entiteiten aanmaken." });
-      return;
+    try {
+      if (req.user.role !== "admin") {
+        res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen entiteiten aanmaken." });
+        return;
+      }
+  
+      const { entity_id, name, description } = req.body;
+      if (!entity_id || !name) {
+        res.status(400).json({ message: "entity_id en name zijn verplicht." });
+        return;
+      }
+  
+      // 🔹 Controleer of entity_id bestaat in InfluxDB
+      const existsInInflux = await checkEntityExistsInInflux(entity_id);
+      if (!existsInInflux) {
+        res.status(400).json({ message: `De entity_id '${entity_id}' bestaat niet in InfluxDB.` });
+        return;
+      }
+  
+      // 🔹 Als de entity_id wél bestaat in InfluxDB, sla op in MySQL
+      const newEntity = await Entity.create({ entity_id, name, description });
+  
+      res.status(201).json(newEntity);
+    } catch (error) {
+      res.status(500).json({ message: "Fout bij het aanmaken van een entiteit", error });
     }
+  };
 
-    const { entity_id, name, description } = req.body;
-    if (!entity_id || !name) {
-      res.status(400).json({ message: "entity_id en name zijn verplicht." });
-      return;
-    }
-
-    const newEntity = await Entity.create({ entity_id, name, description });
-
-    res.status(201).json(newEntity);
-  } catch (error) {
-    res.status(500).json({ message: "Fout bij het aanmaken van een entiteit", error });
-  }
-};
 
 // ✅ Alle entiteiten ophalen (alleen admin)
 export const getEntities = async (req: Request, res: Response): Promise<void> => {
@@ -100,3 +110,53 @@ export const deleteEntity = async (req: Request, res: Response): Promise<void> =
     res.status(500).json({ message: "Fout bij het verwijderen van de entiteit", error });
   }
 };
+
+export const validateEntityId = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { entity_id } = req.params;
+
+        if (!entity_id) {
+            res.status(400).json({ message: "Geen entity_id opgegeven." });
+            return;
+        }
+
+        // Controleer of entity_id bestaat in InfluxDB
+        const exists = await checkEntityExistsInInflux(entity_id);
+
+        res.json({ exists });
+    } catch (error) {
+        console.error("❌ Fout bij validatie van entity_id:", error);
+        res.status(500).json({ message: "Interne serverfout", error });
+    }
+};
+
+
+// ✅ Functie om te controleren of een entity_id in InfluxDB bestaat
+const checkEntityExistsInInflux = async (entity_id: string): Promise<boolean> => {
+    try {
+      // 🔹 Stap 1: Haal alle measurements op uit InfluxDB
+      const measurementsResult = await influx.query(`SHOW MEASUREMENTS`);
+      const measurements = measurementsResult.map((row: any) => row.name);
+
+  
+      // 🔹 Stap 2: Controleer in elke measurement of entity_id bestaat
+      for (const measurement of measurements) {
+        const query = `SELECT * FROM "${measurement}" WHERE "entity_id" = '${entity_id}' LIMIT 1`;
+        const result = await influx.query(query);
+  
+        if (result.length > 0) {
+          return true; // ✅ entity_id gevonden in een van de measurements
+        }
+      }
+
+      console.log(`❌ entity_id "${entity_id}" niet gevonden in InfluxDB`);
+    return false;
+  
+    } catch (error) {
+      console.error("❌ Fout bij ophalen van InfluxDB gegevens:", error);
+      return false;
+    }
+  };
+  
+  
+  
