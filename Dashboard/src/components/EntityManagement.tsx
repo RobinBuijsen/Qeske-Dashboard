@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { fetchEntities, createEntity, updateEntity, deleteEntity } from "../api/api";
+import {
+  fetchEntities,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+} from "../api/api";
 
 interface Entity {
   id: number;
@@ -16,46 +21,46 @@ export default function EntityManagement({ token }: { token: string }) {
   const [errorModal, setErrorModal] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAllEntities = async () => {
+    const fetchAll = async () => {
       setLoading(true);
       try {
         const data = await fetchEntities(token);
         setEntities(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Fout bij ophalen entiteiten:", error);
+        console.error("Fout bij ophalen entiteiten of meetgegevens:", error);
         setEntities([]);
       }
       setLoading(false);
     };
 
-    fetchAllEntities();
+    fetchAll();
   }, [token]);
 
-  const handleEntityChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleEntityChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setNewEntity({ ...newEntity, [e.target.name]: e.target.value });
   };
 
-  // ✅ Controleer of entity_id bestaat in InfluxDB
   const checkEntityExists = async (entity_id: string): Promise<boolean> => {
     try {
-        const response = await fetch(`http://localhost:3000/api/entities/validate/${entity_id}`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-        });
+      const response = await fetch(`http://localhost:3000/api/entities/validate/${entity_id}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        if (!response.ok) {
-            console.error("❌ API Error:", response.statusText);
-            return false;
-        }
-
-        const data = await response.json();
-        return data.exists || false;
-    } catch (error) {
-        console.error("❌ Fout bij controleren entity_id:", error);
+      if (!response.ok) {
+        console.error("❌ API Error:", response.statusText);
         return false;
-    }
-};
+      }
 
+      const data = await response.json();
+      return data.exists || false;
+    } catch (error) {
+      console.error("❌ Fout bij controleren entity_id:", error);
+      return false;
+    }
+  };
 
   const handleSaveEntity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +129,9 @@ export default function EntityManagement({ token }: { token: string }) {
       ) : entities.length > 0 ? (
         entities.map((entity) => (
           <div key={entity.id} className="flex justify-between items-center p-2">
-            <p className="text-black">{entity.name} - {entity.entity_id}</p>
+            <p className="text-black">
+              {entity.name} - {entity.entity_id}
+            </p>
             <div className="flex gap-2">
               <button
                 className="bg-blue-500 px-4 py-1 rounded text-white hover:bg-blue-700"
@@ -145,8 +152,8 @@ export default function EntityManagement({ token }: { token: string }) {
         <p className="text-black">Geen entiteiten gevonden.</p>
       )}
 
-      {/* Modal for creating/editing */}
-      {modal.type === "create" || modal.type === "edit" ? (
+      {/* Modal voor toevoegen/bewerken */}
+      {(modal.type === "create" || modal.type === "edit") && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
           <div className="bg-yellow-400 p-10 rounded-lg shadow-lg text-center w-full max-w-lg">
             <h2 className="text-xl font-bold mb-4">
@@ -177,7 +184,7 @@ export default function EntityManagement({ token }: { token: string }) {
                 value={newEntity.description || ""}
                 onChange={handleEntityChange}
                 className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black"
-              ></textarea>
+              />
               <div className="flex justify-center space-x-4 mt-4">
                 <button type="submit" className="bg-green-500 px-4 py-2 rounded-md text-white">
                   Opslaan
@@ -193,9 +200,9 @@ export default function EntityManagement({ token }: { token: string }) {
             </form>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* Modal for deleting */}
+      {/* Verwijder-confirmatie */}
       {modal.type === "delete" && modal.entity && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
           <div className="bg-yellow-400 p-6 rounded-lg shadow-lg text-center">
@@ -220,7 +227,7 @@ export default function EntityManagement({ token }: { token: string }) {
         </div>
       )}
 
-      {/* Modal for error message */}
+      {/* Foutmelding */}
       {errorModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
           <div className="bg-yellow-400 p-6 rounded-lg shadow-lg text-center">

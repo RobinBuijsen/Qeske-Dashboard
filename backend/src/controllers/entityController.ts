@@ -157,6 +157,48 @@ const checkEntityExistsInInflux = async (entity_id: string): Promise<boolean> =>
       return false;
     }
   };
+
+  // ✅ Meetgegevens ophalen uit InfluxDB via entity_id
+export const getEntityMeasurements = async (req: Request, res: Response): Promise<void> => {
+  const { entity_id } = req.params;
+
+  try {
+    if (req.user.role !== "admin") {
+      res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen meetgegevens bekijken." });
+      return;
+    }
+
+    if (!entity_id) {
+      res.status(400).json({ message: "entity_id ontbreekt." });
+      return;
+    }
+
+    // 🔍 Zoek over alle measurements
+    const measurementsResult = await influx.query(`SHOW MEASUREMENTS`);
+    const measurements = measurementsResult.map((row: any) => row.name);
+
+    let allResults: Record<string, any[]> = {};
+
+    for (const measurement of measurements) {
+      const query = `SELECT mean("value") AS waarde FROM "${measurement}" WHERE "entity_id" = '${entity_id}' AND time > now() - 4h GROUP BY time(30m) FILL(null)`;
+      const result = await influx.query(query);
+
+      if (result.length > 0) {
+        allResults[measurement] = result;
+      }
+    }
+
+    if (Object.keys(allResults).length === 0) {
+      res.status(404).json({ message: `Geen meetgegevens gevonden voor entity_id "${entity_id}".` });
+    } else {
+      res.json(allResults);
+    }
+  } catch (error) {
+    console.error("❌ Fout bij ophalen van Influx data:", error);
+    res.status(500).json({ message: "Interne serverfout", error });
+  }
+};
+
   
   
   

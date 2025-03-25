@@ -342,6 +342,30 @@ export const deleteEntity = async (id: number, token: string) => {
   }
 };
 
+// Entiteit ophalen op basis van ID
+export const fetchEntityMeasurements = async (entity_id: string, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/entities/data/${entity_id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij ophalen meetgegevens: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("📊 Influx data ontvangen:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Fout bij ophalen meetgegevens uit Influx:", error);
+    return null;
+  }
+};
+
+
 
 
 

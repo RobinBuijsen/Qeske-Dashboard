@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
+exports.getEntityMeasurements = exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
 const Entity_1 = __importDefault(require("../models/Entity"));
 const influx_1 = __importDefault(require("../config/influx"));
 // ✅ Nieuwe entiteit aanmaken (alleen admin)
@@ -140,12 +140,10 @@ const checkEntityExistsInInflux = (entity_id) => __awaiter(void 0, void 0, void 
         // 🔹 Stap 1: Haal alle measurements op uit InfluxDB
         const measurementsResult = yield influx_1.default.query(`SHOW MEASUREMENTS`);
         const measurements = measurementsResult.map((row) => row.name);
-        console.log("📌 Opgehaalde measurements:", measurements);
         // 🔹 Stap 2: Controleer in elke measurement of entity_id bestaat
         for (const measurement of measurements) {
             const query = `SELECT * FROM "${measurement}" WHERE "entity_id" = '${entity_id}' LIMIT 1`;
             const result = yield influx_1.default.query(query);
-            console.log(`📌 Query result in "${measurement}":`, result);
             if (result.length > 0) {
                 return true; // ✅ entity_id gevonden in een van de measurements
             }
@@ -158,3 +156,39 @@ const checkEntityExistsInInflux = (entity_id) => __awaiter(void 0, void 0, void 
         return false;
     }
 });
+// ✅ Meetgegevens ophalen uit InfluxDB via entity_id
+const getEntityMeasurements = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { entity_id } = req.params;
+    try {
+        if (req.user.role !== "admin") {
+            res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen meetgegevens bekijken." });
+            return;
+        }
+        if (!entity_id) {
+            res.status(400).json({ message: "entity_id ontbreekt." });
+            return;
+        }
+        // 🔍 Zoek over alle measurements
+        const measurementsResult = yield influx_1.default.query(`SHOW MEASUREMENTS`);
+        const measurements = measurementsResult.map((row) => row.name);
+        let allResults = {};
+        for (const measurement of measurements) {
+            const query = `SELECT mean("value") AS waarde FROM "${measurement}" WHERE "entity_id" = '${entity_id}' AND time > now() - 4h GROUP BY time(30m) FILL(null)`;
+            const result = yield influx_1.default.query(query);
+            if (result.length > 0) {
+                allResults[measurement] = result;
+            }
+        }
+        if (Object.keys(allResults).length === 0) {
+            res.status(404).json({ message: `Geen meetgegevens gevonden voor entity_id "${entity_id}".` });
+        }
+        else {
+            res.json(allResults);
+        }
+    }
+    catch (error) {
+        console.error("❌ Fout bij ophalen van Influx data:", error);
+        res.status(500).json({ message: "Interne serverfout", error });
+    }
+});
+exports.getEntityMeasurements = getEntityMeasurements;
