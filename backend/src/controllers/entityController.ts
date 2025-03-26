@@ -33,20 +33,18 @@ export const createEntity = async (req: Request, res: Response): Promise<void> =
   };
 
 
-// ✅ Alle entiteiten ophalen (alleen admin)
+// ✅ Alle entiteiten ophalen
+// ✅ Alle entiteiten ophalen (voor iedereen)
 export const getEntities = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (req.user.role !== "admin") {
-      res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen entiteiten bekijken." });
-      return;
-    }
-
     const entities = await Entity.findAll();
     res.json(entities);
   } catch (error) {
     res.status(500).json({ message: "Fout bij het ophalen van entiteiten", error });
   }
 };
+
+
 
 // ✅ Een specifieke entiteit ophalen (alleen admin)
 export const getEntityById = async (req: Request, res: Response): Promise<void> => {
@@ -158,22 +156,16 @@ const checkEntityExistsInInflux = async (entity_id: string): Promise<boolean> =>
     }
   };
 
-  // ✅ Meetgegevens ophalen uit InfluxDB via entity_id
+  // ✅ Meetgegevens ophalen (voor iedereen)
 export const getEntityMeasurements = async (req: Request, res: Response): Promise<void> => {
   const { entity_id } = req.params;
 
   try {
-    if (req.user.role !== "admin") {
-      res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen meetgegevens bekijken." });
-      return;
-    }
-
     if (!entity_id) {
       res.status(400).json({ message: "entity_id ontbreekt." });
       return;
     }
 
-    // 🔍 Zoek over alle measurements
     const measurementsResult = await influx.query(`SHOW MEASUREMENTS`);
     const measurements = measurementsResult.map((row: any) => row.name);
 
@@ -198,6 +190,8 @@ export const getEntityMeasurements = async (req: Request, res: Response): Promis
     res.status(500).json({ message: "Interne serverfout", error });
   }
 };
+
+  
 
   
   

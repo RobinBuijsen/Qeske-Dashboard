@@ -42,13 +42,10 @@ const createEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.createEntity = createEntity;
-// ✅ Alle entiteiten ophalen (alleen admin)
+// ✅ Alle entiteiten ophalen
+// ✅ Alle entiteiten ophalen (voor iedereen)
 const getEntities = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        if (req.user.role !== "admin") {
-            res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen entiteiten bekijken." });
-            return;
-        }
         const entities = yield Entity_1.default.findAll();
         res.json(entities);
     }
@@ -156,19 +153,14 @@ const checkEntityExistsInInflux = (entity_id) => __awaiter(void 0, void 0, void 
         return false;
     }
 });
-// ✅ Meetgegevens ophalen uit InfluxDB via entity_id
+// ✅ Meetgegevens ophalen (voor iedereen)
 const getEntityMeasurements = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { entity_id } = req.params;
     try {
-        if (req.user.role !== "admin") {
-            res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen meetgegevens bekijken." });
-            return;
-        }
         if (!entity_id) {
             res.status(400).json({ message: "entity_id ontbreekt." });
             return;
         }
-        // 🔍 Zoek over alle measurements
         const measurementsResult = yield influx_1.default.query(`SHOW MEASUREMENTS`);
         const measurements = measurementsResult.map((row) => row.name);
         let allResults = {};
