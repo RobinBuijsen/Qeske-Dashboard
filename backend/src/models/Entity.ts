@@ -23,6 +23,10 @@ const Entity = sequelize.define("Entity", {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
+  is_chart_entity: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  }
 }, {
   tableName: "entities",
   timestamps: false,

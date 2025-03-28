@@ -3,12 +3,14 @@ import BarChart from "../components/BarChart";
 import PieChart from "../components/PieChart";
 import Meters from "../components/Meters";
 import NavBar from "../components/NavBar";
-import { fetchEntities } from "../api/api";
+import { fetchEntities, getChartEntity, setChartEntity } from "../api/api";
 
 interface Entity {
   id: number;
   entity_id: string;
   name: string;
+  description?: string;
+  is_chart_entity?: boolean;
 }
 
 export default function Home() {
@@ -19,14 +21,29 @@ export default function Home() {
   useEffect(() => {
     const loadEntities = async () => {
       const data = await fetchEntities(token);
-      if (Array.isArray(data) && data.length > 0) {
-        setEntities(data);
+      if (!Array.isArray(data)) return;
+
+      setEntities(data);
+
+      const stored = await getChartEntity(token);
+      if (stored?.entity_id) {
+        setSelected(stored.entity_id);
+      } else if (data.length > 0) {
         setSelected(data[0].entity_id);
       }
     };
 
     loadEntities();
   }, [token]);
+
+  const handleSelect = async (entity_id: string) => {
+    setSelected(entity_id); // ← direct voor UX
+    try {
+      await setChartEntity(entity_id, token); // ← backend opslag
+    } catch (error) {
+      console.error("❌ Fout bij opslaan grafiekentiteit:", error);
+    }
+  };
 
   return (
     <>
@@ -43,7 +60,7 @@ export default function Home() {
                   entity_id={selected}
                   token={token}
                   entities={entities}
-                  onSelect={(id) => setSelected(id)}
+                  onSelect={handleSelect}
                 />
               )}
             </div>

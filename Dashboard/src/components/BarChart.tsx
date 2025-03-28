@@ -49,6 +49,8 @@ export default function BarChart({ title, entity_id, token, entities, onSelect }
   }, [token]);
 
   useEffect(() => {
+    if (!entity_id || entity_id.trim() === "") return;
+
     const fetchAndFormat = async () => {
       setLoading(true);
       try {
@@ -66,6 +68,9 @@ export default function BarChart({ title, entity_id, token, entities, onSelect }
           const sliced = formatted.slice(-8);
           setLabels(sliced.map((e) => e.tijd));
           setValues(sliced.map((e) => e.waarde));
+        } else {
+          setLabels([]);
+          setValues([]);
         }
       } catch (error) {
         console.error("❌ Fout bij ophalen meetgegevens:", error);
@@ -130,7 +135,9 @@ export default function BarChart({ title, entity_id, token, entities, onSelect }
               {entities.map((e) => (
                 <button
                   key={e.id}
-                  className="block w-full text-left px-4 py-2 hover:bg-yellow-200"
+                  className={`block w-full text-left px-4 py-2 hover:bg-yellow-200 ${
+                    e.entity_id === entity_id ? "bg-yellow-100 font-bold" : ""
+                  }`}
                   onClick={() => {
                     setShowMenu(false);
                     onSelect(e.entity_id);

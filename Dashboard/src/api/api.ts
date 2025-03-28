@@ -5,6 +5,7 @@ export interface Entity {
   entity_id: string;
   name: string;
   description: string;
+  is_chart_entity: boolean;
 }
 
 export interface UserData {
@@ -364,6 +365,57 @@ export const fetchEntityMeasurements = async (entity_id: string, token: string) 
     return null;
   }
 };
+
+// ✅ Haal de entiteit op die voor de grafiek wordt gebruikt
+export const getChartEntity = async (token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/chart-entity`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij ophalen actieve grafiek entiteit: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("📊 Actieve grafiek entiteit opgehaald:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Fout bij ophalen grafiek entiteit:", error);
+    return null;
+  }
+};
+
+
+// ✅ Sla nieuwe entiteit op voor de grafiek (alleen admin)
+export const setChartEntity = async (entity_id: string, token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/chart-entity`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ entity_id })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fout bij opslaan grafiek entiteit: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log("✅ Grafiek entiteit opgeslagen:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Fout bij opslaan grafiek entiteit:", error);
+    return null;
+  }
+};
+
 
 
 
