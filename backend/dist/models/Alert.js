@@ -40,7 +40,7 @@ const Alert = db_1.default.define("Alert", {
     duration: {
         type: sequelize_1.DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 10, // Standaard 10 seconden
+        defaultValue: 10,
     },
     message: {
         type: sequelize_1.DataTypes.TEXT,

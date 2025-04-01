@@ -22,8 +22,7 @@ export interface AlertData {
   threshold: number;
   thresholdUnit: "kw" | "kwh";
   message: string;
-  userId: number;
-  entity_id: number;
+  entityName: string;
   time_start: string;
   time_end: string;
   duration: number;

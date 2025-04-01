@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAlert = exports.updateAlert = exports.getAlert = exports.getAlerts = exports.createAlert = void 0;
 const Alert_1 = __importDefault(require("../models/Alert"));
+const Entity_1 = __importDefault(require("../models/Entity"));
 // 🔹 Alert aanmaken (alleen admin)
 const createAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -21,12 +22,29 @@ const createAlert = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen alerts aanmaken." });
             return;
         }
-        const { entity_id, thresholdType, threshold, message, userId, time_start, time_end, duration } = req.body;
-        if (!entity_id || !thresholdType || !threshold || !message || !duration) {
+        const { entityName, thresholdType, threshold, message, time_start, time_end, duration } = req.body;
+        const userId = req.user.id;
+        if (!entityName || !thresholdType || !threshold || !message || !duration) {
             res.status(400).json({ message: "Alle velden behalve 'time_start' en 'time_end' zijn verplicht." });
             return;
         }
-        const newAlert = yield Alert_1.default.create({ entity_id, thresholdType, threshold, message, userId, time_start, time_end, duration });
+        // 🔍 Zoek entity op basis van naam
+        const entity = yield Entity_1.default.findOne({ where: { name: entityName } });
+        if (!entity) {
+            res.status(400).json({ message: `Entiteit met naam '${entityName}' bestaat niet in de database.` });
+            return;
+        }
+        // ✅ Alert aanmaken met juiste entity_id
+        const newAlert = yield Alert_1.default.create({
+            entity_id: entity.get("id"),
+            thresholdType,
+            threshold,
+            message,
+            userId,
+            time_start,
+            time_end,
+            duration,
+        });
         res.status(201).json(newAlert);
     }
     catch (error) {

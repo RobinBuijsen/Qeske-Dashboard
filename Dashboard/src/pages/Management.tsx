@@ -5,6 +5,7 @@ import { getUserById, updateUser } from "../api/api";
 import { createAlert } from "../api/api";
 import { updateAlert } from "../api/api";
 import EntityManagement from "../components/EntityManagement";
+import { fetchEntities, Entity } from "../api/api";
 
 // Definieer een interface voor gebruikers
 interface User {
@@ -27,6 +28,7 @@ interface Alert {
   message: string;
   userId: number;
   entity_id: number;
+  entityName: string;
   time_start: string;
   time_end: string;
   duration: number; 
@@ -42,6 +44,8 @@ export default function Management() {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [password, setPassword] = useState<string>("");
   const [newAlert, setNewAlert] = useState<Partial<Alert>>({});
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -49,8 +53,32 @@ export default function Management() {
       navigate("/login");
       return;
     }
-    fetchData();
+  
+    const init = async () => {
+      await fetchEntitiesFromApi();
+      await fetchData();
+    };
+  
+    init();
   }, []);
+  
+
+
+
+  const fetchEntitiesFromApi = async () => {
+    try {
+      const data = await fetchEntities(token!);
+      setEntities(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Fout bij ophalen entiteiten:", error);
+      setEntities([]);
+    }
+  };
+
+  const checkEntityNameExists = (name: string): boolean => {
+    return entities.some(entity => entity.name === name);
+  };
+  
 
   const fetchData = async () => {
     setLoading(true);
@@ -206,13 +234,27 @@ export default function Management() {
 
   {/* Alert Bewerken */}
   const handleEditAlert = (alert: Alert) => {
-    setNewAlert(alert); 
-    setModal({ type: "editAlert", itemId: alert.id }); 
+    const entity = entities.find(e => e.id === alert.entity_id);
+    const entityName = entity?.name || "";
+  
+    setNewAlert({
+      ...alert,
+      entityName,
+    });
+  
+    setModal({ type: "editAlert", itemId: alert.id });
   };
+  
+  
 
   {/* Alert bijwerken */}
   const handleUpdateAlert = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!checkEntityNameExists(newAlert.entityName || "")) {
+      setErrorModal(`❌ De entiteit "${newAlert.entityName}" bestaat niet in de database.`);
+      return;
+    }    
   
     try {
 
@@ -227,10 +269,9 @@ export default function Management() {
         threshold: parseFloat(String(newAlert.threshold ?? "0")),
         thresholdUnit: newAlert.thresholdUnit ?? "kw",
         message: newAlert.message ?? "",
-        userId: 1,
         time_start: formatTime(newAlert.time_start),
         time_end: formatTime(newAlert.time_end),
-        entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
+        entityName: newAlert.entityName ?? "",
         duration: parseInt(String(newAlert.duration ?? "60"), 10),
       };
   
@@ -238,6 +279,12 @@ export default function Management() {
       console.log("Alert die wordt geüpdatet:", alertData);
   
       const updatedAlert = await updateAlert(newAlert.id!, alertData, token!);
+      if (!updatedAlert || updatedAlert.message?.includes("bestaat niet")) {
+        alert(`❌ ${updatedAlert.message}`);
+        return;
+      }
+
+          
   
       if (updatedAlert) {
         console.log("✅ Alert succesvol geüpdatet!");
@@ -257,14 +304,18 @@ export default function Management() {
     e.preventDefault();
     console.log("🚀 Opslaan knop geklikt!");
   
+    if (!checkEntityNameExists(newAlert.entityName || "")) {
+      setErrorModal(`❌ De entiteit "${newAlert.entityName}" bestaat niet in de database.`);
+      return;
+    }
+  
     try {
       const alertData = {
         thresholdType: newAlert.thresholdType ?? "minimum",
         threshold: parseFloat(String(newAlert.threshold ?? "0")),
         thresholdUnit: newAlert.thresholdUnit ?? "kw",
         message: newAlert.message ?? "",
-        userId: 1,
-        entity_id: parseInt(String(newAlert.entity_id ?? "1"), 10),
+        entityName: newAlert.entityName ?? "",
         time_start: newAlert.time_start ? newAlert.time_start + ":00" : "00:00:00",
         time_end: newAlert.time_end ? newAlert.time_end + ":00" : "00:00:00",
         duration: parseInt(String(newAlert.duration ?? "60"), 10),
@@ -273,6 +324,11 @@ export default function Management() {
       console.log("📨 Alert wordt verstuurd naar API:", alertData);
   
       const createdAlert = await createAlert(alertData, token!);
+  
+      if (!createdAlert || createdAlert.message?.includes("bestaat niet")) {
+        setErrorModal(`❌ ${createdAlert.message}`);
+        return;
+      }
   
       if (createdAlert) {
         console.log("✅ Alert succesvol opgeslagen in de database!", createdAlert);
@@ -286,6 +342,7 @@ export default function Management() {
       console.error("❌ Fout bij opslaan alert:", error);
     }
   };
+  
 ;
   if (loading) {
     return (
@@ -546,12 +603,12 @@ export default function Management() {
                 required
               />
 
-              {/* Entity ID */}
+              {/* Entity Naam */}
               <input
-                type="number"
-                name="entity_id"
-                placeholder="Entity Id"
-                value={newAlert.entity_id || ""}
+                type="text"
+                name="entityName"
+                placeholder="Naam van entiteit"
+                value={newAlert.entityName || ""}
                 onChange={handleAlertChange}
                 className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black focus:outline-none focus:ring focus:ring-[#0E1E3D]"
                 required
@@ -658,10 +715,10 @@ export default function Management() {
         />
 
         <input
-          type="number"
-          name="entity_id"
-          placeholder="Entity Id"
-          value={newAlert.entity_id || ""}
+          type="text"
+          name="entityName"
+          placeholder="Naam van entiteit"
+          value={newAlert.entityName || ""}
           onChange={handleAlertChange}
           className="w-full mb-4 p-2 rounded-lg border border-gray-800 text-black"
           required
@@ -715,6 +772,24 @@ export default function Management() {
     </div>
   </div>
 )}
+
+{/* Foutmelding Alert */}
+{errorModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-30">
+    <div className="bg-yellow-400 p-6 rounded-lg shadow-lg text-center max-w-md w-full">
+      <h2 className="text-xl text-black font-bold mb-4">{errorModal}</h2>
+      <div className="flex justify-center">
+        <button
+          className="bg-red-500 px-4 py-2 rounded-md text-white"
+          onClick={() => setErrorModal(null)}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
 
     </>

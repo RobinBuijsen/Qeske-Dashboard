@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Alert from "../models/Alert";
+import Entity from "../models/Entity";
 
 // 🔹 Alert aanmaken (alleen admin)
 export const createAlert = async (req: Request, res: Response): Promise<void> => {
@@ -9,14 +10,42 @@ export const createAlert = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const { entity_id, thresholdType, threshold, message, userId, time_start, time_end, duration } = req.body;
+    const {
+      entityName, 
+      thresholdType,
+      threshold,
+      message,
+      time_start,
+      time_end,
+      duration
+    } = req.body;
 
-    if (!entity_id || !thresholdType || !threshold || !message || !duration) {
+    const userId = req.user.id; 
+
+    if (!entityName || !thresholdType || !threshold || !message || !duration) {
       res.status(400).json({ message: "Alle velden behalve 'time_start' en 'time_end' zijn verplicht." });
       return;
     }
 
-    const newAlert = await Alert.create({ entity_id, thresholdType, threshold, message, userId, time_start, time_end, duration });
+    // 🔍 Zoek entity op basis van naam
+    const entity = await Entity.findOne({ where: { name: entityName } });
+
+    if (!entity) {
+      res.status(400).json({ message: `Entiteit met naam '${entityName}' bestaat niet in de database.` });
+      return;
+    }
+
+    // ✅ Alert aanmaken met juiste entity_id
+    const newAlert = await Alert.create({
+      entity_id: entity.get("id"),
+      thresholdType,
+      threshold,
+      message,
+      userId,
+      time_start,
+      time_end,
+      duration,
+    });
 
     res.status(201).json(newAlert);
   } catch (error) {

@@ -25,18 +25,18 @@ const Alert = db.define("Alert", {
     allowNull: false,
     defaultValue: "kW",
   },
-  time_start: { // 🔹 Nieuw: tijdsgebonden alerts
+  time_start: { 
     type: DataTypes.TIME,
     allowNull: true,
   },
-  time_end: { // 🔹 Nieuw: einde van de alert tijd
+  time_end: { 
     type: DataTypes.TIME,
     allowNull: true,
   },
-  duration: { // 🔹 Nieuw: hoe lang de piek moet duren voor een alert afgaat
+  duration: { // Hoe lang de piek moet duren voor een alert afgaat
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 10, // Standaard 10 seconden
+    defaultValue: 10, 
   },
   message: {
     type: DataTypes.TEXT,
