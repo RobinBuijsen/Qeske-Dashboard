@@ -82,7 +82,7 @@ export default function Home() {
           </div>
           <div className="border border-yellow-500 p-4 rounded-lg h-[450px]">
             <div className="w-full h-full flex justify-center items-center">
-              <PieChart />
+              <PieChart token={token} entities={entities}/>
             </div>
           </div>
           <div className="border border-yellow-500 p-4 rounded-lg h-[450px]">

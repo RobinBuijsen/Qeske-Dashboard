@@ -28,7 +28,8 @@ const Entity = database_1.default.define("Entity", {
         defaultValue: sequelize_1.DataTypes.NOW,
     },
     chart_position: {
-        type: sequelize_1.DataTypes.ENUM("top", "bottom"),
+        type: sequelize_1.DataTypes.ENUM("top", "bottom", "piechart"),
+        allowNull: true,
         defaultValue: null,
     },
 }, {

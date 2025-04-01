@@ -14,12 +14,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setChartEntity = exports.getChartEntity = void 0;
 const Entity_1 = __importDefault(require("../models/Entity"));
-// 🔹 Haal de huidige entiteit op die voor de grafiek wordt gebruikt
+// 🔹 Haal top, bottom en piechart-entiteiten op
 const getChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const top = yield Entity_1.default.findOne({ where: { chart_position: "top" } });
         const bottom = yield Entity_1.default.findOne({ where: { chart_position: "bottom" } });
-        res.status(200).json({ top, bottom });
+        const piechartEntities = yield Entity_1.default.findAll({ where: { chart_position: "piechart" } });
+        res.status(200).json({
+            top,
+            bottom,
+            piechart: piechartEntities.map(e => e.get("entity_id")),
+        });
     }
     catch (error) {
         console.error("Fout bij ophalen grafiek entiteiten:", error);
@@ -27,19 +32,31 @@ const getChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.getChartEntity = getChartEntity;
-// 🔹 Stel een nieuwe entiteit in voor de grafiek (alleen admin)
+// 🔹 Sla top, bottom of piechart entiteiten op
 const setChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { entity_id, position } = req.body;
-        if (!entity_id || !["top", "bottom"].includes(position)) {
-            res.status(400).json({ message: "entity_id en geldige position zijn verplicht" });
-            return;
-        }
+        const { entity_id, position, entity_ids } = req.body;
         if (!req.user || req.user.role !== "admin") {
             res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen dit wijzigen." });
             return;
         }
-        // Verwijder vorige selectie op die positie
+        if (position === "piechart") {
+            if (!Array.isArray(entity_ids)) {
+                res.status(400).json({ message: "entity_ids moet een array zijn." });
+                return;
+            }
+            // Zet alle vorige piechart-entiteiten terug op null
+            yield Entity_1.default.update({ chart_position: null }, { where: { chart_position: "piechart" } });
+            // Activeer nieuwe selectie
+            yield Promise.all(entity_ids.map(id => Entity_1.default.update({ chart_position: "piechart" }, { where: { entity_id: id } })));
+            res.status(200).json({ message: "Piechart entiteiten succesvol opgeslagen." });
+            return;
+        }
+        // Voor top/bottom
+        if (!entity_id || !["top", "bottom"].includes(position)) {
+            res.status(400).json({ message: "entity_id en geldige position zijn verplicht" });
+            return;
+        }
         yield Entity_1.default.update({ chart_position: null }, { where: { chart_position: position } });
         const [updatedCount] = yield Entity_1.default.update({ chart_position: position }, { where: { entity_id } });
         if (updatedCount === 0) {

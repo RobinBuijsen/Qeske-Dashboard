@@ -424,6 +424,46 @@ export const setChartEntity = async (
   }
 };
 
+// ✅ Haal piechart entiteiten op
+export const getPieChartEntities = async (token: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/settings/chart-entity`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+    return data.piechart || []; // <- backend moet piechart teruggeven als array
+  } catch (error) {
+    console.error("Fout bij ophalen piechart entiteiten:", error);
+    return [];
+  }
+};
+
+// ✅ Sla piechart entiteiten op
+export const setPieChartEntities = async (entity_ids: string[], token: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/settings/chart-entity`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        position: "piechart",
+        entity_ids,
+      }),
+    });
+
+    return await res.json();
+  } catch (error) {
+    console.error("Fout bij opslaan piechart selectie:", error);
+  }
+};
+
+
 
 
 
