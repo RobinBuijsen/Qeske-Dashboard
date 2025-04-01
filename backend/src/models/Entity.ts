@@ -23,10 +23,10 @@ const Entity = sequelize.define("Entity", {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
-  is_chart_entity: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  }
+  chart_position: {
+    type: DataTypes.ENUM("top", "bottom",),
+    defaultValue: null,
+  },
 }, {
   tableName: "entities",
   timestamps: false,

@@ -365,8 +365,14 @@ export const fetchEntityMeasurements = async (entity_id: string, token: string) 
   }
 };
 
-// ✅ Haal de entiteit op die voor de grafiek wordt gebruikt
-export const getChartEntity = async (token: string) => {
+// ✅ Beide posities ondersteund
+export interface ChartEntitySettings {
+  top: Entity | null;
+  bottom: Entity | null;
+}
+
+// ✅ Nieuwe functie: beide grafiek-entiteiten ophalen
+export const getChartEntities = async (token: string): Promise<ChartEntitySettings | null> => {
   try {
     const response = await fetch(`${API_BASE_URL}/settings/chart-entity`, {
       method: "GET",
@@ -377,21 +383,24 @@ export const getChartEntity = async (token: string) => {
     });
 
     if (!response.ok) {
-      throw new Error(`Fout bij ophalen actieve grafiek entiteit: ${response.status}`);
+      throw new Error(`Fout bij ophalen grafiek entiteiten: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("📊 Actieve grafiek entiteit opgehaald:", data);
+    console.log("📊 Beide grafiek entiteiten opgehaald:", data);
     return data;
   } catch (error) {
-    console.error("❌ Fout bij ophalen grafiek entiteit:", error);
+    console.error("❌ Fout bij ophalen grafiek entiteiten:", error);
     return null;
   }
 };
 
-
-// ✅ Sla nieuwe entiteit op voor de grafiek (alleen admin)
-export const setChartEntity = async (entity_id: string, token: string) => {
+// ✅ Nieuwe functie: sla een entiteit op als top/bottom grafiek
+export const setChartEntity = async (
+  entity_id: string,
+  position: "top" | "bottom",
+  token: string
+): Promise<any> => {
   try {
     const response = await fetch(`${API_BASE_URL}/settings/chart-entity`, {
       method: "POST",
@@ -399,7 +408,7 @@ export const setChartEntity = async (entity_id: string, token: string) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ entity_id })
+      body: JSON.stringify({ entity_id, position })
     });
 
     if (!response.ok) {

@@ -17,15 +17,12 @@ const Entity_1 = __importDefault(require("../models/Entity"));
 // 🔹 Haal de huidige entiteit op die voor de grafiek wordt gebruikt
 const getChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const entity = yield Entity_1.default.findOne({ where: { is_chart_entity: true } });
-        if (!entity) {
-            res.status(404).json({ message: "Geen actieve grafiek entiteit gevonden." });
-            return;
-        }
-        res.status(200).json(entity);
+        const top = yield Entity_1.default.findOne({ where: { chart_position: "top" } });
+        const bottom = yield Entity_1.default.findOne({ where: { chart_position: "bottom" } });
+        res.status(200).json({ top, bottom });
     }
     catch (error) {
-        console.error("Fout bij ophalen grafiek entiteit:", error);
+        console.error("Fout bij ophalen grafiek entiteiten:", error);
         res.status(500).json({ message: "Interne serverfout", error });
     }
 });
@@ -33,25 +30,23 @@ exports.getChartEntity = getChartEntity;
 // 🔹 Stel een nieuwe entiteit in voor de grafiek (alleen admin)
 const setChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { entity_id } = req.body;
-        if (!entity_id) {
-            res.status(400).json({ message: "entity_id is verplicht" });
+        const { entity_id, position } = req.body;
+        if (!entity_id || !["top", "bottom"].includes(position)) {
+            res.status(400).json({ message: "entity_id en geldige position zijn verplicht" });
             return;
         }
-        // 🔐 Alleen admins mogen dit doen
         if (!req.user || req.user.role !== "admin") {
             res.status(403).json({ message: "Toegang geweigerd: alleen admins mogen dit wijzigen." });
             return;
         }
-        // 🔄 Zet alle entiteiten uit
-        yield Entity_1.default.update({ is_chart_entity: false }, { where: {} });
-        // ✅ Zet geselecteerde entiteit aan
-        const [updatedCount] = yield Entity_1.default.update({ is_chart_entity: true }, { where: { entity_id } });
+        // Verwijder vorige selectie op die positie
+        yield Entity_1.default.update({ chart_position: null }, { where: { chart_position: position } });
+        const [updatedCount] = yield Entity_1.default.update({ chart_position: position }, { where: { entity_id } });
         if (updatedCount === 0) {
             res.status(404).json({ message: "Entiteit niet gevonden." });
             return;
         }
-        res.status(200).json({ message: "Grafiek entiteit succesvol ingesteld", entity_id });
+        res.status(200).json({ message: `Entiteit ingesteld op positie ${position}`, entity_id });
     }
     catch (error) {
         console.error("Fout bij instellen grafiek entiteit:", error);

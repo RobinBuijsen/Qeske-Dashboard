@@ -79,7 +79,7 @@ export default function BarChart({ title, entity_id, token, entities, onSelect }
     };
 
     fetchAndFormat();
-    const interval = setInterval(fetchAndFormat, 30 * 1000);
+    const interval = setInterval(fetchAndFormat, 15 * 60 * 1000);
     return () => clearInterval(interval);
   }, [entity_id, token]);
 
