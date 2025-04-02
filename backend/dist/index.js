@@ -13,6 +13,7 @@ const alertRoutes_1 = __importDefault(require("./routes/alertRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const entityRoutes_1 = __importDefault(require("./routes/entityRoutes"));
 const chartentityRoutes_1 = __importDefault(require("./routes/chartentityRoutes"));
+const weatherRoutes_1 = __importDefault(require("./routes/weatherRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -24,6 +25,7 @@ app.use("/api/alerts", alertRoutes_1.default);
 app.use("/api", authRoutes_1.default);
 app.use("/api/entities", entityRoutes_1.default);
 app.use("/api/settings", chartentityRoutes_1.default);
+app.use("/api/weather", weatherRoutes_1.default);
 app.use(body_parser_1.default.json());
 const PORT = process.env.PORT || 3000;
 // Database verbinden en server starten

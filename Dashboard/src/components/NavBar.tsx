@@ -1,14 +1,14 @@
-// Import React Router hook
 import { BsLightbulb } from "react-icons/bs";
 import { FaUserCircle } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";  
+import { useNavigate } from "react-router-dom";
 
 export default function NavBar() {
   const [currentTime, setCurrentTime] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>("");
-  const [currentWeather, setCurrentWeather] = useState<string>("");
+  const [currentWeather, setCurrentWeather] = useState<string>("-- | Onbekend weer");
+  const [extraWeather, setExtraWeather] = useState<string>("Neerslag: --, Luchtvochtigheid: --%, Wind: -- km/h");
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
   const [showProfile, setShowProfile] = useState<boolean>(false);
 
@@ -16,14 +16,51 @@ export default function NavBar() {
   const storedRole = localStorage.getItem("role");
   const userRole = storedRole ? JSON.parse(storedRole).name : "user";
 
+  const getWeatherIcon = (state: string): string => {
+    const s = state.toLowerCase();
+    if (s.includes("sun") || s.includes("clear")) return "☀️";
+    if (s.includes("cloud") || s.includes("overcast")) return "☁️";
+    if (s.includes("partly")) return "⛅";
+    if (s.includes("rain")) return "🌧️";
+    if (s.includes("snow")) return "❄️";
+    if (s.includes("storm") || s.includes("thunder")) return "⛈️";
+    return "🌡️"; // fallback
+  };
   
-
   useEffect(() => {
     const fetchWeather = async () => {
-      const weather = "11°C | Gedeeltelijk bewolkt";
-      setCurrentWeather(weather);
+      try {
+        const response = await fetch("http://localhost:3000/api/weather/current", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Weerdata niet beschikbaar");
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Ongeldige response (geen JSON)");
+        }
+
+        const data = await response.json();
+
+        const icon = getWeatherIcon(data.state);
+        const weatherText = `${icon} ${data.temperature}°C | ${data.state}`;
+        const extraText = `Neerslag: ${data.precipitation ?? "--"}mm, Luchtvochtigheid: ${data.humidity ?? "--"}%, Wind: ${data.wind_speed ?? "--"} km/h`;
+
+        setCurrentWeather(weatherText);
+        setExtraWeather(extraText);
+      } catch (err) {
+        console.error("Fout bij ophalen weerdata:", err);
+      }
     };
+
     fetchWeather();
+
+    const intervalId = setInterval(fetchWeather, 15 * 60 * 1000); 
+    return () => clearInterval(intervalId);
+
   }, []);
 
   useEffect(() => {
@@ -40,13 +77,12 @@ export default function NavBar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
-    navigate("/"); 
+    navigate("/");
   };
 
   return (
     <>
       <nav className="flex justify-between items-center px-4 py-2 bg-[#0E1E3D] text-white w-full fixed top-0 z-10 h-[60px] border-b border-gray-700">
-        {/* Logo en titel */}
         <div className="flex items-center">
           <button onClick={() => navigate("/home")} className="flex items-center">
             <img
@@ -58,53 +94,44 @@ export default function NavBar() {
           </button>
         </div>
 
-        {/* Navigatieknoppen */}
         <div className="flex space-x-2">
-          {/* Alleen zichtbaar voor admins */}
           {userRole === "admin" && (
-            <button 
-              className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm" 
+            <button className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
               onClick={() => navigate("/management")}
             >
               Beheer
             </button>
           )}
-          <button 
-            className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
+          <button className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
             onClick={() => navigate("/reports")}
           >
             Rapporten
           </button>
-          <button 
-            className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
+          <button className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
             onClick={() => navigate("/consumers")}
           >
             Zie verbruikers
           </button>
-          <button 
-            className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
+          <button className="bg-yellow-500 text-black px-3 py-1 rounded-md font-bold hover:bg-yellow-600 text-sm"
             onClick={() => navigate("/energyflow")}
           >
             Energieflow Diagrammen
           </button>
         </div>
 
-        {/* Weerinformatie */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col text-right">
             <span>{currentWeather}</span>
-            <span>Neerslag: 1%, Luchtvochtigheid: 72%, Wind: 13 km/h</span>
+            <span>{extraWeather}</span>
           </div>
         </div>
 
-        {/* Datum, tijd en iconen */}
         <div className="flex items-center gap-6">
           <div className="flex flex-col text-right">
             <span>{currentTime}</span>
             <span>{currentDate}</span>
           </div>
 
-          {/* Iconen */}
           <div className="flex items-center gap-3">
             <button className="ml-1">
               <img
@@ -126,7 +153,6 @@ export default function NavBar() {
         </div>
       </nav>
 
-      {/* Gebruikersprofiel */}
       {showProfile && (
         <div className="absolute top-14 right-4 bg-yellow-400 p-4 rounded-lg shadow-lg text-black w-64 text-left">
           <div className="flex items-center mb-4">
@@ -140,7 +166,6 @@ export default function NavBar() {
         </div>
       )}
 
-      {/* Logout Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
           <div className="bg-yellow-400 p-6 rounded-lg shadow-lg text-center">
