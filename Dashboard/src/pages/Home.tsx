@@ -64,7 +64,6 @@ export default function Home() {
     <>
       <NavBar />
       <div className="bg-[#0E1E3D] text-white min-h-screen pt-[70px] overflow-y-auto w-screen px-8">
-        <h2 className="text-xl font-bold mb-4">Energie Dashboard</h2>
 
         <div className="grid grid-cols-2 gap-4 w-full max-w-none auto-rows-[500px]">
           <div className="border border-yellow-500 p-4 rounded-lg h-[450px]">
@@ -85,7 +84,7 @@ export default function Home() {
               <PieChart token={token} entities={entities}/>
             </div>
           </div>
-          <div className="border border-yellow-500 p-4 rounded-lg h-[450px]">
+          <div className="border border-yellow-500 p-4 rounded-lg h-[450px] -mt-10">
             <div className="w-full h-full flex justify-center items-center">
               {selectedBottom && (
                 <BarChart
@@ -98,9 +97,9 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div className="border border-yellow-500 p-4 rounded-lg h-[450px]">
+          <div className="border border-yellow-500 p-4 rounded-lg h-[450px] -mt-10">
             <div className="w-full h-full flex justify-center items-center">
-              <Meters />
+            <Meters token={token} entities={entities} />
             </div>
           </div>
         </div>

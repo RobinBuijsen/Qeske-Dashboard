@@ -24,7 +24,7 @@ const Entity = sequelize.define("Entity", {
     defaultValue: DataTypes.NOW,
   },
   chart_position: {
-    type: DataTypes.ENUM("top", "bottom", "piechart"),
+    type: DataTypes.ENUM("top", "bottom", "piechart", "meter1", "meter2", "meter3", "meter4"),
     allowNull: true,
     defaultValue: null,
   },

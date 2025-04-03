@@ -369,6 +369,13 @@ export const fetchEntityMeasurements = async (entity_id: string, token: string) 
 export interface ChartEntitySettings {
   top: Entity | null;
   bottom: Entity | null;
+  piechart: string[] | null; 
+  meters: {
+    meter1: string | null;
+    meter2: string | null;
+    meter3: string | null;
+    meter4: string | null;
+  };
 }
 
 // ✅ Nieuwe functie: beide grafiek-entiteiten ophalen
@@ -396,9 +403,12 @@ export const getChartEntities = async (token: string): Promise<ChartEntitySettin
 };
 
 // ✅ Nieuwe functie: sla een entiteit op als top/bottom grafiek
+
+type ChartPosition = "top" | "bottom" | "piechart" | "meter1" | "meter2" | "meter3" | "meter4";
+
 export const setChartEntity = async (
   entity_id: string,
-  position: "top" | "bottom",
+  position: ChartPosition,
   token: string
 ): Promise<any> => {
   try {

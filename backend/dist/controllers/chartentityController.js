@@ -14,16 +14,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setChartEntity = exports.getChartEntity = void 0;
 const Entity_1 = __importDefault(require("../models/Entity"));
-// 🔹 Haal top, bottom en piechart-entiteiten op
+// 🔹 Haal top, bottom, meters en piechart-entiteiten op
 const getChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const top = yield Entity_1.default.findOne({ where: { chart_position: "top" } });
         const bottom = yield Entity_1.default.findOne({ where: { chart_position: "bottom" } });
         const piechartEntities = yield Entity_1.default.findAll({ where: { chart_position: "piechart" } });
+        const meter1 = yield Entity_1.default.findOne({ where: { chart_position: "meter1" } });
+        const meter2 = yield Entity_1.default.findOne({ where: { chart_position: "meter2" } });
+        const meter3 = yield Entity_1.default.findOne({ where: { chart_position: "meter3" } });
+        const meter4 = yield Entity_1.default.findOne({ where: { chart_position: "meter4" } });
         res.status(200).json({
             top,
             bottom,
             piechart: piechartEntities.map(e => e.get("entity_id")),
+            meters: {
+                meter1: meter1 === null || meter1 === void 0 ? void 0 : meter1.get("entity_id"),
+                meter2: meter2 === null || meter2 === void 0 ? void 0 : meter2.get("entity_id"),
+                meter3: meter3 === null || meter3 === void 0 ? void 0 : meter3.get("entity_id"),
+                meter4: meter4 === null || meter4 === void 0 ? void 0 : meter4.get("entity_id"),
+            }
         });
     }
     catch (error) {
@@ -32,7 +42,7 @@ const getChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.getChartEntity = getChartEntity;
-// 🔹 Sla top, bottom of piechart entiteiten op
+// 🔹 Sla top, bottom, meterX of piechart entiteiten op
 const setChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { entity_id, position, entity_ids } = req.body;
@@ -45,15 +55,13 @@ const setChartEntity = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 res.status(400).json({ message: "entity_ids moet een array zijn." });
                 return;
             }
-            // Zet alle vorige piechart-entiteiten terug op null
             yield Entity_1.default.update({ chart_position: null }, { where: { chart_position: "piechart" } });
-            // Activeer nieuwe selectie
             yield Promise.all(entity_ids.map(id => Entity_1.default.update({ chart_position: "piechart" }, { where: { entity_id: id } })));
             res.status(200).json({ message: "Piechart entiteiten succesvol opgeslagen." });
             return;
         }
-        // Voor top/bottom
-        if (!entity_id || !["top", "bottom"].includes(position)) {
+        const allowedPositions = ["top", "bottom", "meter1", "meter2", "meter3", "meter4"];
+        if (!entity_id || !allowedPositions.includes(position)) {
             res.status(400).json({ message: "entity_id en geldige position zijn verplicht" });
             return;
         }

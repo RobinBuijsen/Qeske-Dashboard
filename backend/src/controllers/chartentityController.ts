@@ -1,17 +1,27 @@
 import { Request, Response } from "express";
 import Entity from "../models/Entity";
 
-// 🔹 Haal top, bottom en piechart-entiteiten op
+// 🔹 Haal top, bottom, meters en piechart-entiteiten op
 export const getChartEntity = async (req: Request, res: Response): Promise<void> => {
   try {
     const top = await Entity.findOne({ where: { chart_position: "top" } });
     const bottom = await Entity.findOne({ where: { chart_position: "bottom" } });
     const piechartEntities = await Entity.findAll({ where: { chart_position: "piechart" } });
+    const meter1 = await Entity.findOne({ where: { chart_position: "meter1" } });
+    const meter2 = await Entity.findOne({ where: { chart_position: "meter2" } });
+    const meter3 = await Entity.findOne({ where: { chart_position: "meter3" } });
+    const meter4 = await Entity.findOne({ where: { chart_position: "meter4" } });
 
     res.status(200).json({
       top,
       bottom,
       piechart: piechartEntities.map(e => e.get("entity_id")), 
+      meters: {
+        meter1: meter1?.get("entity_id"),
+        meter2: meter2?.get("entity_id"),
+        meter3: meter3?.get("entity_id"),
+        meter4: meter4?.get("entity_id"),
+      }
     });
   } catch (error) {
     console.error("Fout bij ophalen grafiek entiteiten:", error);
@@ -19,8 +29,7 @@ export const getChartEntity = async (req: Request, res: Response): Promise<void>
   }
 };
 
-
-// 🔹 Sla top, bottom of piechart entiteiten op
+// 🔹 Sla top, bottom, meterX of piechart entiteiten op
 export const setChartEntity = async (req: Request, res: Response): Promise<void> => {
   try {
     const { entity_id, position, entity_ids } = req.body;
@@ -36,10 +45,8 @@ export const setChartEntity = async (req: Request, res: Response): Promise<void>
         return;
       }
 
-      // Zet alle vorige piechart-entiteiten terug op null
       await Entity.update({ chart_position: null }, { where: { chart_position: "piechart" } });
 
-      // Activeer nieuwe selectie
       await Promise.all(
         entity_ids.map(id =>
           Entity.update({ chart_position: "piechart" }, { where: { entity_id: id } })
@@ -50,8 +57,8 @@ export const setChartEntity = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Voor top/bottom
-    if (!entity_id || !["top", "bottom"].includes(position)) {
+    const allowedPositions = ["top", "bottom", "meter1", "meter2", "meter3", "meter4"];
+    if (!entity_id || !allowedPositions.includes(position)) {
       res.status(400).json({ message: "entity_id en geldige position zijn verplicht" });
       return;
     }

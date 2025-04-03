@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import NavBar from "../components/NavBar";
 import EnergyFlow from "../components/EnergyFlow"; 
-import { Meter1, Meter2, Meter3, Meter4 } from "../components/Meters"; 
+import  Meters  from "../components/Meters"; 
 import { Bar, Line } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { fetchEntities } from "../api/api";
 
 Chart.register(...registerables);
 
@@ -14,6 +15,8 @@ const Reports: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [zelfvoorziening, setZelfvoorziening] = useState(0);
   const [koolstofarmeEnergie, setKoolstofarmeEnergie] = useState(0);
+  const token = localStorage.getItem("token") || "";
+  const [entities, setEntities] = useState<{ id: number; entity_id: string; name: string }[]>([]);
 
   // Dummy data voor verschillende periodes
   const dataPerDag = {
@@ -57,6 +60,13 @@ const Reports: React.FC = () => {
   };
 
   useEffect(() => {
+
+    const loadEntities = async () => {
+      const res = await fetchEntities(token);
+      setEntities(res);
+    };
+    loadEntities();
+    
     // Simuleer een backend call om meterstanden en andere data op te halen
     const fetchData = async () => {
       const fetchedZelfvoorziening = 24; // Simulatie
@@ -134,16 +144,16 @@ const Reports: React.FC = () => {
                 <h2 className="text-lg font-bold mb-1">Meterstanden</h2>
                 <div className="flex flex-col space-y-4 text-xs">
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter1 value={50} />
+                  <Meters token={token} entities={entities} />
                   </div>
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter2 value={75} />
+                  <Meters token={token} entities={entities} />
                   </div>
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter3 value={100} />
+                  <Meters token={token} entities={entities} />
                   </div>
                   <div className="flex flex-col items-center scale-[0.8]">
-                    <Meter4 value={0} />
+                  <Meters token={token} entities={entities} />
                   </div>
                 </div>
               </div>
