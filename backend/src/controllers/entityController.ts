@@ -227,6 +227,43 @@ for (const entity_id of entity_ids) {
     res.status(500).json({ message: "Interne serverfout", error });
   }
 };
-  
-  
-  
+
+interface SensorStats {
+  min?: number;
+  max?: number;
+  mean?: number;
+  last?: number;
+}
+
+export const getStatsForEntities = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { entity_ids } = req.body;
+    const results: Record<string, SensorStats> = {};
+
+    for (const entity_id of entity_ids) {
+      const raw = await influx.query<any>(`
+        SELECT 
+          LAST("value") as "last",
+          MIN("value") as "min",
+          MAX("value") as "max",
+          MEAN("value") as "mean"
+        FROM "°C"
+        WHERE "entity_id" = '${entity_id}' AND time > now() - 24h
+      `);
+
+      const val: SensorStats = {
+        last: raw[0]?.last ?? 0,
+        min: raw[0]?.min ?? 0,
+        max: raw[0]?.max ?? 0,
+        mean: raw[0]?.mean ?? 0
+      };
+
+      results[entity_id] = val;
+    }
+
+    res.json(results);
+  } catch (err) {
+    console.error("Error fetching stats:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+};

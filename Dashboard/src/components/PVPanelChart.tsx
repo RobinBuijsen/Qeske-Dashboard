@@ -37,58 +37,51 @@ const fetchSensorValues = async () => {
   return await res.json();
 };
 
+const generateTimeLabels = (): string[] => {
+  const labels: string[] = [];
+  const now = new Date();
+  for (let i = 10; i >= 0; i--) {
+    const past = new Date(now.getTime() - i * 1 * 60 * 1000);
+    const hh = past.getHours().toString().padStart(2, '0');
+    const mm = past.getMinutes().toString().padStart(2, '0');
+    labels.push(`${hh}:${mm}`);
+  }
+  return labels;
+};
+
 const PVPanelChart: React.FC = () => {
-  const [chartData, setChartData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [chartData, setChartData] = useState<number[]>(new Array(20).fill(0));
+  const [labels, setLabels] = useState<string[]>(generateTimeLabels());
   const [inverterData, setInverterData] = useState<Record<string, number>>({});
 
+  const fetchAndUpdate = async () => {
+    const data = await fetchSensorValues();
+    if (!data) return;
+
+    const newVal = parseFloat((data[SENSOR_IDS.totalPv] ?? 0).toFixed(2));
+
+    setChartData(prev => {
+      const trimmed = [...prev.slice(1), newVal];
+      return trimmed;
+    });
+
+    setLabels(generateTimeLabels());
+
+    setInverterData({
+      [SENSOR_IDS.inverter1]: parseFloat((data[SENSOR_IDS.inverter1] ?? 0).toFixed(2)),
+      [SENSOR_IDS.inverter2]: parseFloat((data[SENSOR_IDS.inverter2] ?? 0).toFixed(2)),
+      [SENSOR_IDS.inverter3]: parseFloat((data[SENSOR_IDS.inverter3] ?? 0).toFixed(2)),
+    });
+  };
+
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const data = await fetchSensorValues();
-      if (!data) return;
-
-      setChartData(prev => {
-        const newVal = data[SENSOR_IDS.totalPv] ?? 0;
-        const trimmed = [...prev.slice(1), parseFloat(newVal.toFixed(2))];
-        return trimmed;
-      });
-
-      setInverterData({
-        [SENSOR_IDS.inverter1]: parseFloat((data[SENSOR_IDS.inverter1] ?? 0).toFixed(2)),
-        [SENSOR_IDS.inverter2]: parseFloat((data[SENSOR_IDS.inverter2] ?? 0).toFixed(2)),
-        [SENSOR_IDS.inverter3]: parseFloat((data[SENSOR_IDS.inverter3] ?? 0).toFixed(2)),
-      });
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const fetchAndUpdate = async () => {
-      const data = await fetchSensorValues();
-      if (!data) return;
-  
-      setChartData(prev => {
-        const newVal = data[SENSOR_IDS.totalPv] ?? 0;
-        const trimmed = [...prev.slice(1), parseFloat(newVal.toFixed(2))];
-        return trimmed;
-      });
-  
-      setInverterData({
-        [SENSOR_IDS.inverter1]: parseFloat((data[SENSOR_IDS.inverter1] ?? 0).toFixed(2)),
-        [SENSOR_IDS.inverter2]: parseFloat((data[SENSOR_IDS.inverter2] ?? 0).toFixed(2)),
-        [SENSOR_IDS.inverter3]: parseFloat((data[SENSOR_IDS.inverter3] ?? 0).toFixed(2)),
-      });
-    };
-  
     fetchAndUpdate();
-  
     const interval = setInterval(fetchAndUpdate, 60000);
     return () => clearInterval(interval);
   }, []);
-  
 
   const data = {
-    labels: ["00:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00"],
+    labels: labels,
     datasets: [
       {
         label: "Opbrengst (W)",

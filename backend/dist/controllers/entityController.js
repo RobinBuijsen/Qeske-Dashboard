@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLatestEntityValues = exports.getEntityMeasurements = exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
+exports.getStatsForEntities = exports.getLatestEntityValues = exports.getEntityMeasurements = exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
 const Entity_1 = __importDefault(require("../models/Entity"));
 const influx_1 = __importDefault(require("../config/influx"));
 // ✅ Nieuwe entiteit aanmaken (alleen admin)
@@ -215,3 +215,34 @@ const getLatestEntityValues = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.getLatestEntityValues = getLatestEntityValues;
+const getStatsForEntities = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    try {
+        const { entity_ids } = req.body;
+        const results = {};
+        for (const entity_id of entity_ids) {
+            const raw = yield influx_1.default.query(`
+        SELECT 
+          LAST("value") as "last",
+          MIN("value") as "min",
+          MAX("value") as "max",
+          MEAN("value") as "mean"
+        FROM "°C"
+        WHERE "entity_id" = '${entity_id}' AND time > now() - 24h
+      `);
+            const val = {
+                last: (_b = (_a = raw[0]) === null || _a === void 0 ? void 0 : _a.last) !== null && _b !== void 0 ? _b : 0,
+                min: (_d = (_c = raw[0]) === null || _c === void 0 ? void 0 : _c.min) !== null && _d !== void 0 ? _d : 0,
+                max: (_f = (_e = raw[0]) === null || _e === void 0 ? void 0 : _e.max) !== null && _f !== void 0 ? _f : 0,
+                mean: (_h = (_g = raw[0]) === null || _g === void 0 ? void 0 : _g.mean) !== null && _h !== void 0 ? _h : 0
+            };
+            results[entity_id] = val;
+        }
+        res.json(results);
+    }
+    catch (err) {
+        console.error("Error fetching stats:", err);
+        res.status(500).json({ error: "Failed to fetch stats" });
+    }
+});
+exports.getStatsForEntities = getStatsForEntities;
