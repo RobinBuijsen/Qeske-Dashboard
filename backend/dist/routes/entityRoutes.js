@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const entityController_1 = require("../controllers/entityController");
 const authMiddleware_1 = __importDefault(require("../middleware/authMiddleware"));
+const entityController_2 = require("../controllers/entityController");
 const router = (0, express_1.Router)();
 // Alleen admins mogen entiteiten beheren
+router.post("/values", authMiddleware_1.default, entityController_2.getLatestEntityValues);
 router.get("/data/:entity_id", authMiddleware_1.default, entityController_1.getEntityMeasurements);
 router.get("/validate/:entity_id", authMiddleware_1.default, entityController_1.validateEntityId);
 router.post("/", authMiddleware_1.default, entityController_1.createEntity);

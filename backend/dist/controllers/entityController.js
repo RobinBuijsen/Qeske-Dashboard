@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEntityMeasurements = exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
+exports.getLatestEntityValues = exports.getEntityMeasurements = exports.validateEntityId = exports.deleteEntity = exports.updateEntity = exports.getEntityById = exports.getEntities = exports.createEntity = void 0;
 const Entity_1 = __importDefault(require("../models/Entity"));
 const influx_1 = __importDefault(require("../config/influx"));
 // ✅ Nieuwe entiteit aanmaken (alleen admin)
@@ -184,3 +184,34 @@ const getEntityMeasurements = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.getEntityMeasurements = getEntityMeasurements;
+const getLatestEntityValues = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { entity_ids } = req.body;
+        if (!Array.isArray(entity_ids) || entity_ids.length === 0) {
+            res.status(400).json({ message: "entity_ids moet een niet-lege array zijn." });
+            return;
+        }
+        const result = {};
+        for (const entity_id of entity_ids) {
+            const measurements = yield influx_1.default.query(`SHOW MEASUREMENTS`);
+            let found = false;
+            for (const { name: measurement } of measurements) {
+                const query = `SELECT LAST("value") FROM "${measurement}" WHERE "entity_id" = '${entity_id}'`;
+                const data = yield influx_1.default.query(query);
+                if (data.length > 0 && typeof data[0].last === "number") {
+                    result[entity_id] = parseFloat(data[0].last.toFixed(2));
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                result[entity_id] = null;
+        }
+        res.json(result);
+    }
+    catch (error) {
+        console.error("❌ Fout bij ophalen van actuele entity waarden:", error);
+        res.status(500).json({ message: "Interne serverfout", error });
+    }
+});
+exports.getLatestEntityValues = getLatestEntityValues;

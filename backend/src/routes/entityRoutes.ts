@@ -9,11 +9,13 @@ import {
     getEntityMeasurements 
        } from "../controllers/entityController";
 import authMiddleware from "../middleware/authMiddleware";
+import { getLatestEntityValues } from "../controllers/entityController";
 
 
 const router = Router();
 
 // Alleen admins mogen entiteiten beheren
+router.post("/values", authMiddleware, getLatestEntityValues);
 router.get("/data/:entity_id", authMiddleware, getEntityMeasurements);
 router.get("/validate/:entity_id", authMiddleware, validateEntityId);
 router.post("/", authMiddleware, createEntity);

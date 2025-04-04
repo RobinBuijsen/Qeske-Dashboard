@@ -22,7 +22,6 @@ app.use((0, cors_1.default)());
 app.use("/api/auth", authRoutes_1.default);
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/alerts", alertRoutes_1.default);
-app.use("/api", authRoutes_1.default);
 app.use("/api/entities", entityRoutes_1.default);
 app.use("/api/settings", chartentityRoutes_1.default);
 app.use("/api/weather", weatherRoutes_1.default);
