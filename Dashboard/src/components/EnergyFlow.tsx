@@ -2,16 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 const SENSOR_MAP: Record<string, string[]> = {
-  'Koolstofarm': ['today_load_2'],
-  'Zonne-energie': [
-    'today_s_pv_generation_1',
-    'today_s_pv_generation_2',
-    'today_s_pv_generation_4'
+  "Koolstofarm": ["today_load_2"],
+
+  "Zonne-energie": [
+    "today_s_pv_generation_1",
+    "today_s_pv_generation_2",
+    "today_s_pv_generation_4"
   ],
-  'Net': ['today_energy_import_2', 'today_energy_export_2'],
-  'Thuis': ['today_load_2'],
-  'Batterij': ['today_battery_charge_2', 'today_battery_discharge_2']
+
+  "Net-import": ["today_energy_import_2"],
+  "Net-export": ["today_energy_export_2"],
+
+  "Net": ["today_energy_import_2", "today_energy_export_2"],
+
+  "Batterij-opladen": ["today_battery_charge_2"],
+  "Batterij-ontladen": ["today_battery_discharge_2"],
+
+  "Thuis": ["today_load_2"]
 };
+
 
 const EnergyFlow = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -32,23 +41,36 @@ const EnergyFlow = () => {
       console.error("Server error:", res.status, await res.text());
       return;
     }
-  
+
     const raw: Record<string, number | null> = await res.json();
     const values: Record<string, number> = {};
-  
+
     for (const node in SENSOR_MAP) {
-      const total = SENSOR_MAP[node]
-        .map(id => raw[id] ?? 0)
-        .reduce((a, b) => a + b, 0);
-      values[node] = parseFloat(total.toFixed(2));
+      const ids = SENSOR_MAP[node];
+      if (node === 'Net') {
+        const importVal = raw['today_energy_import_2'] ?? 0;
+        const exportVal = raw['today_energy_export_2'] ?? 0;
+        values[node] = parseFloat((importVal + exportVal).toFixed(2));
+        values['Net_import'] = importVal;
+        values['Net_export'] = exportVal;
+      } else if (node === 'Batterij') {
+        const charge = raw['today_battery_charge_2'] ?? 0;
+        const discharge = raw['today_battery_discharge_2'] ?? 0;
+        values[node] = parseFloat((charge + discharge).toFixed(2));
+        values['Batterij_charge'] = charge;
+        values['Batterij_discharge'] = discharge;
+      } else {
+        const total = ids.map(id => raw[id] ?? 0).reduce((a, b) => a + b, 0);
+        values[node] = parseFloat(total.toFixed(2));
+      }
     }
-  
+
     setSensorValues(values);
   };
 
   useEffect(() => {
     fetchSensors();
-    const interval = setInterval(fetchSensors, 60000); // elke minuut
+    const interval = setInterval(fetchSensors, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -73,8 +95,18 @@ const EnergyFlow = () => {
     ];
 
     nodes.forEach(n => {
-      const value = sensorValues[n.id];
-      n.value = typeof value === "number" ? `${value} kWh` : "—";
+      if (n.id === "Net") {
+        const imp = sensorValues['Net_import'] ?? 0;
+        const exp = sensorValues['Net_export'] ?? 0;
+        n.value = `↓ ${imp} kWh\n↑ ${exp} kWh`;
+      } else if (n.id === "Batterij") {
+        const chg = sensorValues['Batterij_charge'] ?? 0;
+        const dis = sensorValues['Batterij_discharge'] ?? 0;
+        n.value = `↓ ${chg} kWh\n↑ ${dis} kWh`;
+      } else {
+        const val = sensorValues[n.id];
+        n.value = typeof val === "number" ? `${val} kWh` : "—";
+      }
     });
 
     const links = [
@@ -156,13 +188,16 @@ const EnergyFlow = () => {
         .attr("font-size", "26px")
         .text(node.icon);
 
-      svg.append("text")
-        .attr("x", node.x)
-        .attr("y", node.y + 25)
-        .attr("text-anchor", "middle")
-        .attr("fill", "white")
-        .attr("font-size", "18px")
-        .text(node.value);
+      const valueLines = node.value.split("\n");
+      valueLines.forEach((line, i) => {
+        svg.append("text")
+          .attr("x", node.x)
+          .attr("y", node.y + 25 + i * 18)
+          .attr("text-anchor", "middle")
+          .attr("fill", "white")
+          .attr("font-size", "18px")
+          .text(line);
+      });
     });
 
   }, [sensorValues]);

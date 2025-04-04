@@ -1,8 +1,70 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+
+const SENSOR_MAP: Record<string, string[]> = {
+  "Koolstofarm": ["current_load_2"],
+  "Zonne-energie": ["current_s_pv_generation_1", "current_s_pv_generation_2", "current_s_pv_generation_4"],
+  "Net-import": ["current_energy_import_2"],
+  "Net-export": ["current_energy_export_2"],
+  "Net": ["current_energy_import_2", "current_energy_export_2"],
+  "Batterij-opladen": ["current_battery_charge_2"],
+  "Batterij-ontladen": ["current_battery_discharge_2"],
+  "Thuis": ["current_load_2"],
+  "Laadpaal": ["ev_charger_power"],
+  "Server ruimte": ["pcid_werkruimte_energy"]
+};
 
 const EnergyFlow = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [sensorValues, setSensorValues] = useState<Record<string, number>>({});
+
+  const fetchSensors = async () => {
+    const entity_ids = Object.values(SENSOR_MAP).flat();
+    const res = await fetch("http://localhost:3000/api/entities/values", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+      },
+      body: JSON.stringify({ entity_ids })
+    });
+
+    if (!res.ok) {
+      console.error("Server error:", res.status, await res.text());
+      return;
+    }
+
+    const raw: Record<string, number | null> = await res.json();
+    const values: Record<string, number> = {};
+
+    for (const node in SENSOR_MAP) {
+      const ids = SENSOR_MAP[node];
+      if (node === 'Net') {
+        const importVal = raw['current_energy_import_2'] ?? 0;
+        const exportVal = raw['current_energy_export_2'] ?? 0;
+        values[node] = parseFloat(((importVal + exportVal) / 1000).toFixed(2));
+        values['Net_import'] = parseFloat((importVal / 1000).toFixed(2));
+        values['Net_export'] = parseFloat((exportVal / 1000).toFixed(2));
+      } else if (node === 'Batterij') {
+        const charge = raw['current_battery_charge_2'] ?? 0;
+        const discharge = raw['current_battery_discharge_2'] ?? 0;
+        values[node] = parseFloat(((charge + discharge) / 1000).toFixed(2));
+        values['Batterij_charge'] = parseFloat((charge / 1000).toFixed(2));
+        values['Batterij_discharge'] = parseFloat((discharge / 1000).toFixed(2));
+      } else {
+        const total = ids.map(id => raw[id] ?? 0).reduce((a, b) => a + b, 0);
+        values[node] = parseFloat((total / 1000).toFixed(2));
+      }
+    }
+
+    setSensorValues(values);
+  };
+
+  useEffect(() => {
+    fetchSensors();
+    const interval = setInterval(fetchSensors, 60000); 
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -16,18 +78,31 @@ const EnergyFlow = () => {
     svg.attr("viewBox", `0 0 ${width} ${height}`)
        .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // **Nodes**
     const nodes = [
-      { id: "Koolstofarm", x: 100, y: 50, color: "#2ecc71", value: "3,2 kW", icon: "🌿" },
-      { id: "Zonne-energie", x: 350, y: 50, color: "#f1c40f", value: "1,3 kW", icon: "☀️" },
-      { id: "Net", x: 100, y: 225, color: "#3498db", value: "6,9 kW", icon: "⚡" },
-      { id: "Thuis", x: 600, y: 225, color: "#2ecc71", value: "8,2 kW", icon: "🏠" },
-      { id: "Batterij", x: 350, y: 400, color: "#BD5176", value: "0 W", icon: "🔋" },
-      { id: "Laadpaal", x: 600, y: 50, color: "#e74c3c", value: "0 W", icon: "🚗" },
-      { id: "Server ruimte", x: 600, y: 400, color: "#9b59b6", value: "1,4 kW", icon: "💻" }
+      { id: "Koolstofarm", x: 100, y: 50, color: "#2ecc71", icon: "🌿", value: "" },
+      { id: "Zonne-energie", x: 350, y: 50, color: "#f1c40f", icon: "☀️", value: "" },
+      { id: "Net", x: 100, y: 225, color: "#3498db", icon: "🗼", value: "" },
+      { id: "Thuis", x: 600, y: 225, color: "#2ecc71", icon: "🏠", value: "" },
+      { id: "Batterij", x: 350, y: 400, color: "#BD5176", icon: "🔋", value: "" },
+      { id: "Laadpaal", x: 600, y: 50, color: "#e74c3c", icon: "🚗", value: "" },
+      { id: "Server ruimte", x: 600, y: 400, color: "#9b59b6", icon: "💻", value: "" }
     ];
 
-    // **Links tussen de nodes**
+    nodes.forEach(n => {
+      if (n.id === "Net") {
+        const imp = sensorValues['Net_import'] ?? 0;
+        const exp = sensorValues['Net_export'] ?? 0;
+        n.value = `↓ ${imp} kW\n↑ ${exp} kW`;
+      } else if (n.id === "Batterij") {
+        const chg = sensorValues['Batterij_charge'] ?? 0;
+        const dis = sensorValues['Batterij_discharge'] ?? 0;
+        n.value = `↓ ${chg} kW\n↑ ${dis} kW\n90%`;
+      } else {
+        const val = sensorValues[n.id];
+        n.value = typeof val === "number" ? `${val} kW` : "—";
+      }
+    });
+
     const links = [
       { source: "Koolstofarm", target: "Net", color: "#2ecc71" },
       { source: "Zonne-energie", target: "Thuis", color: "#f1c40f" },
@@ -40,8 +115,7 @@ const EnergyFlow = () => {
       { source: "Thuis", target: "Server ruimte", color: "#9b59b6" }
     ];
 
-    // **Teken curved path**
-    const curvePath = (source: { x: number, y: number }, target: { x: number, y: number }, inward: boolean = false) => {
+    const curvePath = (source: any, target: any, inward = false) => {
       const dx = target.x - source.x;
       const dy = target.y - source.y;
       const dr = Math.sqrt(dx * dx + dy * dy);
@@ -68,7 +142,6 @@ const EnergyFlow = () => {
         .attr("stroke-width", 4)
         .attr("fill", "none");
 
-      // **Animatie bolletjes**
       if (!(link.source === "Batterij" && (link.target === "Net" || link.target === "Thuis"))) {
         const circle = svg.append("circle")
           .attr("r", 5)
@@ -83,7 +156,7 @@ const EnergyFlow = () => {
             .duration(duration)
             .attrTween("transform", function () {
               return function (t) {
-                const p = path.node()?.getPointAtLength(t * path.node()?.getTotalLength()!);
+                const p = path.node()?.getPointAtLength(t * path.node()!.getTotalLength());
                 return p ? `translate(${p.x},${p.y})` : '';
               };
             })
@@ -94,7 +167,6 @@ const EnergyFlow = () => {
       }
     });
 
-    // **Teken Nodes (Circles)**
     nodes.forEach(node => {
       svg.append("circle")
         .attr("cx", node.x)
@@ -112,16 +184,19 @@ const EnergyFlow = () => {
         .attr("font-size", "26px")
         .text(node.icon);
 
-      svg.append("text")
-        .attr("x", node.x)
-        .attr("y", node.y + 25)
-        .attr("text-anchor", "middle")
-        .attr("fill", "white")
-        .attr("font-size", "18px")
-        .text(node.value);
+      const valueLines = node.value.split("\n");
+      valueLines.forEach((line, i) => {
+        svg.append("text")
+          .attr("x", node.x)
+          .attr("y", node.y + 25 + i * 18)
+          .attr("text-anchor", "middle")
+          .attr("fill", "white")
+          .attr("font-size", "18px")
+          .text(line);
+      });
     });
 
-  }, []);
+  }, [sensorValues]);
 
   return (
     <div className="flex justify-center items-center p-4">
