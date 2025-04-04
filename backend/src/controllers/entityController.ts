@@ -228,6 +228,8 @@ for (const entity_id of entity_ids) {
   }
 };
 
+
+
 interface SensorStats {
   min?: number;
   max?: number;
@@ -240,25 +242,43 @@ export const getStatsForEntities = async (req: Request, res: Response): Promise<
     const { entity_ids } = req.body;
     const results: Record<string, SensorStats> = {};
 
+    const measurements: { name: string }[] = await influx.query(`SHOW MEASUREMENTS`);
+
     for (const entity_id of entity_ids) {
-      const raw = await influx.query<any>(`
-        SELECT 
-          LAST("value") as "last",
-          MIN("value") as "min",
-          MAX("value") as "max",
-          MEAN("value") as "mean"
-        FROM "°C"
-        WHERE "entity_id" = '${entity_id}' AND time > now() - 24h
-      `);
+      let found = false;
 
-      const val: SensorStats = {
-        last: raw[0]?.last ?? 0,
-        min: raw[0]?.min ?? 0,
-        max: raw[0]?.max ?? 0,
-        mean: raw[0]?.mean ?? 0
-      };
+      for (const { name: measurement } of measurements) {
+        const stats = await influx.query<SensorStats>(`
+          SELECT 
+            LAST("value") as "last",
+            MIN("value") as "min",
+            MAX("value") as "max",
+            MEAN("value") as "mean"
+          FROM "${measurement}"
+          WHERE "entity_id" = '${entity_id}' AND time > now() - 24h
+        `);
 
-      results[entity_id] = val;
+        if (stats.length > 0) {
+          const val = stats[0];
+          results[entity_id] = {
+            min: val.min ?? 0,
+            max: val.max ?? 0,
+            mean: val.mean ?? 0,
+            last: val.last ?? 0
+          };
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        results[entity_id] = {
+          min: 0,
+          max: 0,
+          mean: 0,
+          last: 0
+        };
+      }
     }
 
     res.json(results);

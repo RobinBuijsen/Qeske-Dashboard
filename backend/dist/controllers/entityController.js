@@ -216,27 +216,43 @@ const getLatestEntityValues = (req, res) => __awaiter(void 0, void 0, void 0, fu
 });
 exports.getLatestEntityValues = getLatestEntityValues;
 const getStatsForEntities = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d;
     try {
         const { entity_ids } = req.body;
         const results = {};
+        const measurements = yield influx_1.default.query(`SHOW MEASUREMENTS`);
         for (const entity_id of entity_ids) {
-            const raw = yield influx_1.default.query(`
-        SELECT 
-          LAST("value") as "last",
-          MIN("value") as "min",
-          MAX("value") as "max",
-          MEAN("value") as "mean"
-        FROM "°C"
-        WHERE "entity_id" = '${entity_id}' AND time > now() - 24h
-      `);
-            const val = {
-                last: (_b = (_a = raw[0]) === null || _a === void 0 ? void 0 : _a.last) !== null && _b !== void 0 ? _b : 0,
-                min: (_d = (_c = raw[0]) === null || _c === void 0 ? void 0 : _c.min) !== null && _d !== void 0 ? _d : 0,
-                max: (_f = (_e = raw[0]) === null || _e === void 0 ? void 0 : _e.max) !== null && _f !== void 0 ? _f : 0,
-                mean: (_h = (_g = raw[0]) === null || _g === void 0 ? void 0 : _g.mean) !== null && _h !== void 0 ? _h : 0
-            };
-            results[entity_id] = val;
+            let found = false;
+            for (const { name: measurement } of measurements) {
+                const stats = yield influx_1.default.query(`
+          SELECT 
+            LAST("value") as "last",
+            MIN("value") as "min",
+            MAX("value") as "max",
+            MEAN("value") as "mean"
+          FROM "${measurement}"
+          WHERE "entity_id" = '${entity_id}' AND time > now() - 24h
+        `);
+                if (stats.length > 0) {
+                    const val = stats[0];
+                    results[entity_id] = {
+                        min: (_a = val.min) !== null && _a !== void 0 ? _a : 0,
+                        max: (_b = val.max) !== null && _b !== void 0 ? _b : 0,
+                        mean: (_c = val.mean) !== null && _c !== void 0 ? _c : 0,
+                        last: (_d = val.last) !== null && _d !== void 0 ? _d : 0
+                    };
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                results[entity_id] = {
+                    min: 0,
+                    max: 0,
+                    mean: 0,
+                    last: 0
+                };
+            }
         }
         res.json(results);
     }
